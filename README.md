@@ -3,6 +3,19 @@
 > **Status:** versão de pré-lançamento para validação, testes e preparação da
 > publicação oficial.
 
+## Downloads de pré-lançamento
+
+- **Código-fonte:** https://github.com/suportesaasgestao-web/gestao-saas-app
+- **Windows / PC:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
+- **Android APK:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
+- **Linux:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
+- **macOS:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
+- **Todas as compilações:** https://github.com/suportesaasgestao-web/gestao-saas-app/actions
+
+Na página da compilação, role até **Artifacts** e escolha o pacote da
+plataforma desejada: `gestao-saas-windows`, `gestao-saas-android`,
+`gestao-saas-linux` ou `gestao-saas-macos`.
+
 Sistema de gestão empresarial multiempresa para cadastro de organizações,
 produtos, estoque, colaboradores e chamados de suporte. A interface é
 responsiva e pode ser executada como PWA, aplicativo Android via Capacitor e
