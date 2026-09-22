@@ -54,9 +54,9 @@ export const PhpBackendViewer: React.FC = () => {
 2. O sistema possui auto-instalação: ao abrir o sistema no navegador, 'Config\\Database::getInstance()' criará automaticamente o banco de dados e as tabelas caso não existam.
 3. Acesse 'index.php' no seu navegador ou inicie o servidor interno do PHP:
    \`php -S localhost:8000\`
-4. Primeiro acesso:
-   - Cadastre a empresa pela tela de login e configure o primeiro administrador no ambiente da implantação.
-   - Este pacote não possui credenciais padrão.
+4. Credenciais padrão de demonstração:
+   - Administradores devem ser provisionados apenas no ambiente seguro da implantação.
+   - Cadastre o primeiro proprietário da empresa durante a implantação.
 `);
 
       const blob = await zip.generateAsync({ type: 'blob' });

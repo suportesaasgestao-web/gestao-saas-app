@@ -29,7 +29,6 @@ interface SidebarProps {
   pendingCount?: number;
   lowStockCount?: number;
   openTicketsCount?: number;
-  language?: 'pt-BR' | 'en' | 'es';
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,33 +37,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   pendingCount = 0,
   lowStockCount = 0,
-  openTicketsCount = 0,
-  language = 'pt-BR'
+  openTicketsCount = 0
 }) => {
-  const labels = {
-    'pt-BR': { nav: 'Navegação do Sistema', dashboard: 'Dashboard Geral', companies: 'Aprovação de Empresas', products: 'Cadastro de Produtos', stock: 'Controle de Estoque', team: 'Equipe & Funcionários', tickets: 'Central de Tickets', settings: 'Dados da Empresa & Logo', code: 'Código PHP & MySQL' },
-    en: { nav: 'System Navigation', dashboard: 'General Dashboard', companies: 'Company Approval', products: 'Product Catalog', stock: 'Inventory Control', team: 'Team & Employees', tickets: 'Support Center', settings: 'Company Data & Logo', code: 'PHP & MySQL Code' },
-    es: { nav: 'Navegación del Sistema', dashboard: 'Panel General', companies: 'Aprobación de Empresas', products: 'Registro de Productos', stock: 'Control de Inventario', team: 'Equipo y Empleados', tickets: 'Centro de Soporte', settings: 'Datos de Empresa y Logo', code: 'Código PHP y MySQL' }
-  }[language];
   const navItems = [
     {
       id: 'dashboard' as ActiveTab,
-      label: labels.dashboard,
+      label: 'Dashboard Geral',
       icon: LayoutDashboard,
       roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: null
     },
     {
       id: 'admin-empresas' as ActiveTab,
-      label: labels.companies,
+      label: 'Painel de Admin',
       icon: Building2,
       roles: ['admin'],
-      badge: pendingCount > 0 ? `${pendingCount} pendente` : null,
-      badgeColor: 'bg-amber-100 text-amber-800'
+      badge: (pendingCount + openTicketsCount) > 0 ? `${pendingCount + openTicketsCount} pendências` : null,
+      badgeColor: 'bg-purple-100 text-purple-800'
     },
     {
       id: 'produtos' as ActiveTab,
-      label: labels.products,
+      label: 'Cadastro de Produtos',
       icon: Package,
       roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: lowStockCount > 0 ? `${lowStockCount} alertas` : null,
@@ -72,36 +65,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'estoque' as ActiveTab,
-      label: labels.stock,
+      label: 'Controle de Estoque',
       icon: ArrowLeftRight,
       roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: null
     },
     {
       id: 'funcionarios' as ActiveTab,
-      label: labels.team,
+      label: 'Equipe & Funcionários',
       icon: Users2,
       roles: ['admin', 'dono', 'gerente'],
       badge: null
     },
     {
       id: 'tickets' as ActiveTab,
-      label: labels.tickets,
+      label: 'Chamados de Suporte',
       icon: LifeBuoy,
-      roles: ['admin', 'dono', 'gerente', 'funcionario'],
+      roles: ['admin'],
       badge: openTicketsCount > 0 ? `${openTicketsCount} abertos` : null,
       badgeColor: 'bg-blue-100 text-blue-700'
     },
     {
       id: 'configuracoes' as ActiveTab,
-      label: labels.settings,
+      label: 'Dados da Empresa & Logo',
       icon: Settings,
       roles: ['admin', 'dono'],
       badge: null
     },
     {
       id: 'codigo' as ActiveTab,
-      label: labels.code,
+      label: 'Código PHP & MySQL',
       icon: FileCode2,
       roles: ['admin'],
       badge: 'Admin / Dev',
@@ -115,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="hidden lg:flex w-64 bg-slate-900 text-slate-100 flex-col shrink-0 min-h-[calc(100vh-61px)] rounded-xl border border-slate-800 shadow-xs">
       <div className="p-4 border-b border-slate-800">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 tracking-wider uppercase">
-          <span>{labels.nav}</span>
+          <span>Navegação do Sistema</span>
         </div>
       </div>
 

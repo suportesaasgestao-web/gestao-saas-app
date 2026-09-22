@@ -2,20 +2,39 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>GestãoSaaS - Sistema de Gestão Empresarial</title>
-    <meta name="description" content="Sistema SaaS completo para gestão empresarial com múltiplos perfis, controle de estoque, aprovação de empresas, tickets e código-fonte PHP com MySQL." />
+    <meta name="description" content="Sistema SaaS multiplataforma de gestão empresarial para PC, Android, macOS, iOS (iPhone), Linux e ChromeOS, com controle de estoque, chamados de suporte para administradores e multi-empresas." />
+    
+    <!-- PWA & Mobile Meta Tags (PC, Android, macOS, iPhone, Linux, ChromeOS) -->
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GestãoSaaS" />
+    <meta name="application-name" content="GestãoSaaS" />
+    <meta name="msapplication-TileColor" content="#2563eb" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Favicons & Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Open Graph & Social -->
     <meta property="og:title" content="GestãoSaaS - Sistema de Gestão Empresarial" />
-    <meta property="og:description" content="Sistema SaaS completo para gestão empresarial com múltiplos perfis, controle de estoque, aprovação de empresas, tickets e código-fonte PHP com MySQL." />
+    <meta property="og:description" content="Sistema SaaS multiplataforma de gestão empresarial para PC, Android, macOS, iOS (iPhone), Linux e ChromeOS." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
+  <body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen selection:bg-blue-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

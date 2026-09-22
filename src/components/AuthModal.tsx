@@ -30,7 +30,6 @@ interface AuthModalProps {
   onClose: () => void;
   isFullScreen?: boolean;
   onSuccessLogin: (user: User, company: Company | null) => void;
-  onAuthenticate: (identifier: string, password: string) => Promise<{ user: User; company: Company | null }>;
   onRegisterCompany: (companyData: {
     razao_social: string;
     nome_fantasia: string;
@@ -40,8 +39,10 @@ interface AuthModalProps {
     nome_dono: string;
     email_dono: string;
     senha_dono: string;
-  }) => Promise<{ success: boolean; message: string }>;
-  onResetPassword?: (emailOrCnpj: string) => Promise<{ success: boolean; message: string }>;
+  }) => { success: boolean; message: string };
+  onResetPassword?: (emailOrCnpj: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  onRequestRecoveryCode?: (email: string) => Promise<{ success: boolean; message: string }>;
+  onVerifyRecoveryCode?: (email: string, code: string) => Promise<{ success: boolean; message: string }>;
   companies: Company[];
   users: User[];
 }
@@ -53,6 +54,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSuccessLogin,
   onRegisterCompany,
   onResetPassword,
+  onRequestRecoveryCode,
+  onVerifyRecoveryCode,
   companies,
   users
 }) => {
@@ -86,7 +89,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [recError, setRecError] = useState('');
   const [recSuccess, setRecSuccess] = useState('');
   const [copiedEmail, setCopiedEmail] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const [isSubmittingReset, setIsSubmittingReset] = useState(false);
 
   // Efeito de contagem regressiva de 15 minutos (900 segundos)
@@ -119,12 +121,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
-  const handleCopyVerificationCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2500);
-  };
-
   const getMailtoLink = (subjectContext = 'Ajuda com Recuperação de Senha') => {
     const subj = encodeURIComponent(`Suporte GestãoSaaS - ${subjectContext}`);
     const body = encodeURIComponent(
@@ -135,20 +131,62 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
-    try {
-      const result = await onAuthenticate(identifier.trim(), loginPassword);
-      onSuccessLogin(result.user, result.company);
-      onClose();
-    } catch (error) {
-      setLoginError(error instanceof Error ? error.message : 'Não foi possível autenticar.');
+    const cleanInput = identifier.trim();
+    const cleanDigits = cleanInput.replace(/\D/g, '');
+
+    // Busca usuário por CNPJ ou por E-mail
+    let matchedUser: User | undefined;
+    let matchedCompany: Company | null = null;
+
+    if (cleanDigits.length === 14) {
+      // Login por CNPJ da empresa
+      matchedCompany = companies.find(c => c.cnpj && c.cnpj.replace(/\D/g, '') === cleanDigits) || null;
+      if (matchedCompany) {
+        matchedUser = users.find(u => u.empresa_id === matchedCompany!.id && (u.perfil === 'dono' || u.perfil === 'gerente'));
+      }
+    } else {
+      // Login por E-mail
+      matchedUser = users.find(u => u.email.toLowerCase() === cleanInput.toLowerCase());
+      if (matchedUser && matchedUser.empresa_id) {
+        matchedCompany = companies.find(c => c.id === matchedUser!.empresa_id) || null;
+      }
     }
+
+    if (!matchedUser) {
+      setLoginError('Nenhum usuário ou empresa encontrado com este E-mail/CNPJ.');
+      return;
+    }
+
+    // Validação de Senha (se definida pelo usuário no cadastro)
+    if (matchedUser.senha && loginPassword && matchedUser.senha !== loginPassword) {
+      setLoginError('Senha incorreta. Verifique a senha digitada.');
+      return;
+    }
+
+    // Se for admin, não precisa de empresa
+    if (matchedUser.perfil === 'admin') {
+      onSuccessLogin(matchedUser, null);
+      onClose();
+      return;
+    }
+
+    // Validação de Status da Empresa
+    if (matchedCompany) {
+      if (matchedCompany.status === 'rejeitada' || matchedCompany.status === 'suspensa') {
+        setLoginError(`Acesso bloqueado: o status da empresa é ${matchedCompany.status.toUpperCase()}. Entre em contato com o suporte.`);
+        return;
+      }
+    }
+
+    onSuccessLogin(matchedUser, matchedCompany);
+    onClose();
   };
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setRegErrorMessage('');
     setLoginSuccessMessage('');
@@ -158,7 +196,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const res = await onRegisterCompany({
+    const res = onRegisterCompany({
       razao_social: regRazao,
       nome_fantasia: regFantasia || regRazao,
       cnpj: regCnpj,
@@ -196,7 +234,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleRecoverSubmit = (e: React.FormEvent) => {
+  const handleRecoverSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecError('');
     setRecSuccess('');
@@ -207,30 +245,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // Gera código numérico de 6 dígitos
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 15 * 60 * 1000; // Exatamente 15 minutos
+    if (!onRequestRecoveryCode) {
+      setRecError('A recuperação de senha não está configurada.');
+      return;
+    }
 
-    setGeneratedCode(code);
-    setCodeExpiresAt(expires);
+    const result = await onRequestRecoveryCode(cleanInput);
+    if (!result.success) {
+      setRecError(result.message);
+      return;
+    }
+    setGeneratedCode('sent');
+    setCodeExpiresAt(Date.now() + 15 * 60 * 1000);
     setSecondsLeft(15 * 60);
     setEnteredCode('');
     setRecStep('verify');
-    setRecSuccess(`Código de 6 dígitos gerado com sucesso para ${cleanInput}! Válido por 15 minutos.`);
+    setRecSuccess(result.message);
   };
 
-  const handleResendCode = () => {
+  const handleResendCode = async () => {
     setRecError('');
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 15 * 60 * 1000;
-    setGeneratedCode(code);
-    setCodeExpiresAt(expires);
+    if (!onRequestRecoveryCode) return;
+    const result = await onRequestRecoveryCode(recEmail);
+    if (!result.success) {
+      setRecError(result.message);
+      return;
+    }
+    setGeneratedCode('sent');
+    setCodeExpiresAt(Date.now() + 15 * 60 * 1000);
     setSecondsLeft(15 * 60);
     setEnteredCode('');
-    setRecSuccess('Novo código de 6 dígitos enviado! Válido por mais 15 minutos.');
+    setRecSuccess(result.message);
   };
 
-  const handleVerifyCodeSubmit = (e: React.FormEvent) => {
+  const handleVerifyCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecError('');
 
@@ -245,14 +293,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    if (enteredCode.trim() !== generatedCode) {
-      setRecError('Código incorreto ou inválido. Se você tiver algum problema ou o código falhar, contate nosso suporte direto abaixo.');
+    if (!onVerifyRecoveryCode) {
+      setRecError('A validação de código não está configurada.');
       return;
     }
 
-    // Código validado com sucesso
+    const result = await onVerifyRecoveryCode(recEmail, enteredCode);
+    if (!result.success) {
+      setRecError(result.message);
+      return;
+    }
     setRecStep('new_password');
-    setRecSuccess('Código de 6 dígitos validado com sucesso! Defina sua nova senha de acesso.');
+    setRecSuccess(result.message);
   };
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
@@ -272,7 +324,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmittingReset(true);
     try {
       if (onResetPassword) {
-        const res = await onResetPassword(recEmail);
+        const res = await onResetPassword(recEmail, recNewPassword);
         if (res.success) {
           setIdentifier(recEmail);
           setLoginPassword('');
@@ -676,32 +728,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </div>
 
-                {/* Card de Simulação e Notificação do Código Despachado */}
                 {generatedCode && (
                   <div className="p-3.5 bg-gradient-to-br from-blue-50 to-indigo-50/70 border border-blue-200 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center">
                       <span className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
                         <Mail className="w-4 h-4 text-blue-600" />
-                        Código Enviado para: {recEmail}
+                        Código enviado para: {recEmail}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyVerificationCode(generatedCode)}
-                        className="text-[11px] text-blue-700 hover:text-blue-900 font-semibold flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs"
-                      >
-                        {copiedCode ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        {copiedCode ? 'Copiado!' : 'Copiar'}
-                      </button>
                     </div>
 
-                    <div className="text-center py-2 bg-white rounded-lg border border-blue-200/80 shadow-inner">
-                      <span className="text-2xl font-mono font-black tracking-[0.35em] text-blue-900 select-all">
-                        {generatedCode}
-                      </span>
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Código de autenticação seguro válido por 15 minutos
-                      </p>
-                    </div>
+                    <p className="text-[10px] text-slate-500">O código real é enviado pelo Supabase e é válido por até 15 minutos.</p>
                   </div>
                 )}
 
@@ -721,7 +757,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     autoFocus
                   />
                   <span className="text-[11px] text-slate-400 text-center block mt-1">
-                    Insira os 6 números recebidos no e-mail ou utilize o botão copiar acima.
+                    Insira os 6 números recebidos no e-mail.
                   </span>
                 </div>
 
@@ -790,7 +826,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </form>
             )}
 
-            {/* BLOCO DE SUPORTE OFICIAL DIRETO (messiasmdesa463@gmail.com) */}
+            {/* Suporte ao usuário */}
             <div className="mt-4 pt-3 border-t border-slate-200">
               <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3.5 space-y-2">
                 <div className="flex items-start gap-2">

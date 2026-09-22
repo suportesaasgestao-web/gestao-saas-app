@@ -1,7 +1,5 @@
 import { Company, User, Product, StockMovement, Ticket } from './types';
 
-// Empresa e Usuários Iniciais: VAZIO
-// O sistema inicia totalmente limpo sem nenhum dado pré-existente
 export const INITIAL_COMPANIES: Company[] = [];
 export const INITIAL_USERS: User[] = [];
 

@@ -32,10 +32,10 @@ export type NavigationTab =
 
 export interface User {
   id: number;
-  uid?: string;
   empresa_id: number | null;
   nome: string;
   email: string;
+  senha?: string;
   cnpj?: string;
   cargo?: string;
   departamento?: string;

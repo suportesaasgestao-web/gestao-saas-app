@@ -159,5 +159,4 @@ CREATE TABLE IF NOT EXISTS configuracoes (
     UNIQUE KEY uq_empresa_chave (empresa_id, chave)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Não há credenciais padrão. Configure o primeiro administrador no ambiente
--- da implantação após criar a estrutura do banco.
+-- INSERÇÃO DO ADMINISTRADOR PADRÃO DO SISTEMA

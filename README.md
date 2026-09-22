@@ -1,150 +1,116 @@
 # GestãoSaaS
 
-Sistema de gestão empresarial para pequenas e médias empresas, com foco em automação operacional, controle de estoque, gestão de clientes, funcionários, tickets e administração de empresas.
+Sistema de gestão empresarial multiempresa para cadastro de organizações,
+produtos, estoque, colaboradores e chamados de suporte. A interface é
+responsiva e pode ser executada como PWA, aplicativo Android via Capacitor e
+aplicativo desktop via Electron.
 
-<div align="center">
-  <img src="docs/dashboard-preview.svg" alt="Prévia do painel GestãoSaaS" width="1000" />
-</div>
+## Segurança e administração
 
-## Visão geral
+Credenciais de administradores **não são distribuídas neste repositório**, não
+aparecem na tela de login e não ficam embutidas no bundle do cliente. Provisione
+os administradores no Supabase Auth ou no backend da implantação, aplique RLS e
+use variáveis de ambiente para as chaves públicas. Nunca publique a
+`service_role key`, senhas ou tokens.
 
-O GestãoSaaS foi desenvolvido para centralizar processos essenciais de uma empresa em uma plataforma moderna, eficiente e intuitiva. A solução oferece painel administrativo, controle de produtos, movimentação de estoque, gestão de colaboradores, suporte interno e fácil acompanhamento do desempenho da operação.
-
-## Funcionalidades
-
-- Painel administrativo completo
-- Gestão de empresas e usuários
-- Cadastro e controle de funcionários
-- Controle de produtos e inventário
-- Movimentação de estoque
-- Dashboard com indicadores e métricas
-- Gestão de tickets e atendimento
-- Configurações de empresa
-- Interface responsiva e moderna
-
-## Stack tecnológica
-
-- React + TypeScript
-- Vite
-- Firebase / Firestore
-- PHP
-- HTML, CSS e JavaScript
+O projeto não inclui “acesso direto” para administradores. Usuários e clientes
+visualizam apenas o fluxo normal de autenticação; autorizações administrativas
+devem ser verificadas no backend/provedor de identidade, nunca apenas no
+frontend.
 
 ## Requisitos
 
-- Node.js 18+
-- npm
-- PHP e servidor local, quando utilizado o backend em PHP
-- Firebase configurado, caso a integração em nuvem seja necessária
+- Node.js 20+ e npm (ou Bun)
+- Android Studio e JDK 17 para gerar o APK
+- Xcode em macOS para gerar o aplicativo macOS/iOS
+- Electron Builder para os instaladores desktop
+- Projeto Supabase configurado para autenticação e persistência
 
-## Instalação
+## Configuração
 
-1. Clone o repositório.
-2. Acesse a pasta do projeto.
-3. Instale as dependências:
+1. Instale as dependências:
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-### Autenticação e banco
+2. Copie `.env.example` para `.env.local` e preencha somente as variáveis
+   necessárias:
 
-O frontend usa Firebase Authentication para login, cadastro e recuperação de
-senha. Ative o provedor **E-mail/senha** no Firebase Console antes de usar o
-sistema. Nunca grave senhas nos documentos do Firestore.
+   ```env
+   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+   VITE_SUPABASE_ANON_KEY=sua-chave-anon
+   ```
 
-O backend PHP exige `DB_HOST`, `DB_NAME`, `DB_USER` e `DB_PASS` configurados no
-ambiente; consulte `.env.example`. Ele não usa mais usuário `root` nem aceita
-senha vazia.
+3. Execute `supabase/schema.sql` no SQL Editor do Supabase. Em produção,
+   substitua políticas permissivas por políticas RLS vinculadas ao usuário,
+   empresa e perfil.
 
-## Execução local
+4. Configure o provedor de e-mail do Supabase. O botão **Esqueceu sua senha?**
+   envia um código real por e-mail, valida o código por até 15 minutos e
+   atualiza a senha através de `supabase.auth.updateUser`.
+
+## Execução e validação
 
 ```bash
 npm run dev
-```
-
-A aplicação fica disponível em:
-
-```bash
-http://localhost:3000
-```
-
-## Build para produção
-
-```bash
+npm run lint
 npm run build
 ```
 
-## Aplicativo para PC (Windows)
+## Pacotes multiplataforma
 
-O projeto também pode ser executado como aplicativo Windows usando Electron:
-
-```bash
-npm install
-npm run desktop:dev
-```
-
-Para gerar o instalador e a versão portátil:
+### Android APK
 
 ```bash
-npm run desktop:build
+npm run build
+npx cap sync android
+cd android
+.\gradlew.bat assembleDebug
 ```
 
-Os arquivos serão criados na pasta `release/`.
+O APK de depuração é gerado em
+`android/app/build/outputs/apk/debug/app-debug.apk`. Para distribuição,
+configure uma chave de assinatura própria e execute `assembleRelease`.
 
-### Download de pré-lançamento
+### Windows, Linux e macOS
 
-Esta é uma versão de **pré-lançamento** para testes e validação. Baixe o
-instalador mais recente do GestãoSaaS na página de
-[Releases do GitHub](https://github.com/messiasmdesa463-coder/gestao-saas-sistema-de-gestao-empresarial/releases/latest).
+```bash
+npm run build
+npx electron-builder --win --linux --mac
+```
 
-Para Windows, execute o arquivo `.exe` disponível na versão publicada e siga
-as instruções do instalador. O pré-lançamento pode apresentar mudanças e
-instabilidades antes da versão oficial.
+O alvo macOS só pode ser assinado e empacotado em um host macOS. Os artefatos
+desktop ficam em `release/` quando o empacotamento termina.
 
-### Download para Android
+### PWA
 
-Baixe o APK de pré-lançamento na mesma página de
-[Releases do GitHub](https://github.com/messiasmdesa463-coder/gestao-saas-sistema-de-gestao-empresarial/releases/latest).
-No Android, permita a instalação de aplicativos desta fonte quando solicitado
-e abra o arquivo `GestaoSaaS-0.0.0-android-debug.apk`.
+```bash
+npm run build
+npm run preview
+```
 
-### Download para Linux e macOS
+Em navegadores compatíveis, o PWA pode ser instalado no Windows, Linux, macOS,
+Android e ChromeOS.
 
-O pré-lançamento também possui configuração para pacotes Linux (`AppImage` e
-`.deb`) e macOS (`.dmg` e `.zip`). Baixe os arquivos disponíveis na página de
-[Releases do GitHub](https://github.com/messiasmdesa463-coder/gestao-saas-sistema-de-gestao-empresarial/releases/latest).
-O pacote macOS precisa ser gerado em um computador macOS e pode exigir
-assinatura/notarização da Apple antes da instalação.
+## Documentos legais
 
-## Avaliações do sistema
+- [Licença MIT](LICENSE)
+- [Política de Privacidade](PRIVACY_POLICY.md)
 
-### Nota geral: 4,9/5
+Os documentos são modelos técnicos e devem ser revisados pelo responsável
+legal pela implantação, especialmente quanto à LGPD, retenção, base legal,
+subprocessadores e canal de atendimento.
 
-- “Interface moderna, intuitiva e muito fácil de operar no dia a dia.”
-- “Excelente base para gestão empresarial, com boa organização e produtividade.”
-- “Ferramenta muito útil para controlar operações, atendimento e fluxo interno.”
-- “Visual limpo, funcional e com grande potencial para expansão de módulos.”
+## Estrutura
 
-## Observações
-
-Este projeto foi concebido como uma solução SaaS de gestão empresarial com foco em produtividade, organização e escalabilidade. Em ambiente de produção, recomenda-se reforçar autenticação, segurança, backup, variáveis de ambiente e políticas de acesso.
+- `src/`: aplicação React/TypeScript
+- `supabase/`: schema e configuração de persistência
+- `android/`: projeto Capacitor Android
+- `electron/`: processo principal desktop
+- `php_saas/`: backend PHP legado opcional
+- `release/`: artefatos gerados, quando presentes
 
 ## Licença
 
-Este projeto é distribuído sob a licença MIT. Consulte o arquivo
-[LICENSE](LICENSE) para conhecer as permissões e condições de uso.
-
-## Política de privacidade
-
-O tratamento de dados cadastrais, dados de empresas, usuários, funcionários,
-produtos, estoque e tickets deve seguir a legislação aplicável e as regras
-definidas pela organização responsável pela implantação. Consulte a
-[Política de Privacidade](PRIVACY_POLICY.md) antes de usar o sistema em
-produção.
-
-## Contato
-
-Para dúvidas, suporte técnico, ajustes ou customização de regras de negócio,
-entre em contato pelo e-mail
-[suportesaasgestao@gmail.com](mailto:suportesaasgestao@gmail.com).
+Distribuído sob a licença MIT. Consulte `LICENSE`.

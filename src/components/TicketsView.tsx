@@ -192,25 +192,6 @@ export const TicketsView: React.FC<TicketsViewProps> = ({
         </div>
       </div>
 
-      <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h4 className="text-sm font-bold text-purple-900">Precisa entender como resolver?</h4>
-          <p className="text-xs text-purple-700 mt-1">
-            Abra o assistente de IA para explicar o problema e receber orientação passo a passo.
-          </p>
-        </div>
-        <a
-          href={`https://chatgpt.com/?q=${encodeURIComponent('Estou usando o GestãoSaaS e preciso de ajuda para entender e resolver um problema. Explique em português, passo a passo, com segurança.')}`}
-          target="_blank"
-          rel="noreferrer"
-          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors shrink-0"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Ajuda com IA</span>
-          <ExternalLink className="w-3 h-3" />
-        </a>
-      </div>
-
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Tickets List */}

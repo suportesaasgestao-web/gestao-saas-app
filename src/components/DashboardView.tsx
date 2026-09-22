@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Company, Product, StockMovement, Ticket, UserRole } from '../types';
 import { 
   Package, 
@@ -12,37 +12,69 @@ import {
   Clock, 
   ShieldAlert,
   ArrowRight,
-  Boxes
+  Boxes,
+  PlusCircle,
+  CheckCircle2,
+  AlertCircle,
+  Truck,
+  RotateCcw,
+  X,
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { ActiveTab } from './Sidebar';
+import { StockMovementChart } from './StockMovementChart';
 
 interface DashboardViewProps {
   currentUser: User;
   currentCompany: Company | null;
   companies: Company[];
+  users: User[];
   products: Product[];
   movements: StockMovement[];
   tickets: Ticket[];
   onNavigate: (tab: ActiveTab) => void;
   onOpenNewMovement: (type: 'entrada' | 'saida') => void;
+  onReplenishProduct?: (productId: number) => void;
+  onRecordMovement?: (movement: {
+    produto_id: number;
+    tipo: 'entrada' | 'saida' | 'ajuste' | 'devolucao';
+    quantidade: number;
+    motivo: string;
+    documento_ref?: string;
+    valor_unitario?: number;
+  }) => { success: boolean; message: string };
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   currentUser,
   currentCompany,
   companies,
+  users,
   products,
   movements,
   tickets,
   onNavigate,
-  onOpenNewMovement
+  onOpenNewMovement,
+  onReplenishProduct,
+  onRecordMovement
 }) => {
   const isGlobalAdmin = currentUser.perfil === 'admin';
+
+  // Estado para Modal de Reposição Rápida
+  const [quickReplenishProduct, setQuickReplenishProduct] = useState<Product | null>(null);
+  const [quickQty, setQuickQty] = useState<number>(1);
+  const [quickReason, setQuickReason] = useState<string>('Reposição rápida de estoque crítico');
+  const [quickDocRef, setQuickDocRef] = useState<string>('');
+  const [quickSubmitting, setQuickSubmitting] = useState<boolean>(false);
+  const [criticalFilter, setCriticalFilter] = useState<'todos' | 'esgotados' | 'baixo'>('todos');
+  const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
 
   // Cálculos para Admin
   const totalEmpresas = companies.length;
   const empresasPendentes = companies.filter(c => c.status === 'pendente').length;
   const empresasAprovadas = companies.filter(c => c.status === 'aprovada').length;
+  const usuariosAtivos = users.filter(u => u.ativo && typeof u.empresa_id === 'number' && u.empresa_id > 0).length;
   const ticketsGlobaisAbertos = tickets.filter(t => t.status === 'aberto' || t.status === 'em_atendimento').length;
 
   // Cálculos para Empresa Tenant
@@ -54,6 +86,71 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const ticketsEmpresaAbertos = tickets.filter(t => t.status === 'aberto' || t.status === 'em_atendimento').length;
 
   const recentMovements = movements.slice(0, 5);
+
+  // Cálculos da Seção de Alertas Críticos
+  const zeradosCount = produtosCriticos.filter(p => p.estoque_atual <= 0).length;
+  const baixoCount = produtosCriticos.filter(p => p.estoque_atual > 0).length;
+
+  const displayedCriticalProducts = produtosCriticos.filter(p => {
+    if (criticalFilter === 'esgotados') return p.estoque_atual <= 0;
+    if (criticalFilter === 'baixo') return p.estoque_atual > 0;
+    return true;
+  });
+
+  const handleOpenQuickModal = (prod: Product) => {
+    setQuickReplenishProduct(prod);
+    const deficit = Math.max(1, prod.estoque_minimo - prod.estoque_atual);
+    setQuickQty(deficit > 0 ? deficit : 5);
+    setQuickReason('Reposição rápida de estoque crítico');
+    setQuickDocRef(`REP-${prod.sku}`);
+  };
+
+  const handleOneClickReplenish = (prod: Product) => {
+    const deficit = Math.max(1, prod.estoque_minimo - prod.estoque_atual);
+    if (onRecordMovement) {
+      const res = onRecordMovement({
+        produto_id: prod.id,
+        tipo: 'entrada',
+        quantidade: deficit,
+        motivo: 'Reposição direta de emergência (Alertas Críticos)',
+        documento_ref: `AUTO-REP-${prod.sku}`,
+        valor_unitario: prod.preco_custo || undefined
+      });
+      if (res.success) {
+        setActionSuccessMessage(`Estoque de "${prod.nome}" reposto com sucesso (+${deficit} ${prod.unidade_medida})!`);
+        setTimeout(() => setActionSuccessMessage(null), 4000);
+      }
+    } else if (onReplenishProduct) {
+      onReplenishProduct(prod.id);
+    }
+  };
+
+  const handleConfirmQuickReplenish = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickReplenishProduct || quickQty <= 0) return;
+    setQuickSubmitting(true);
+    try {
+      if (onRecordMovement) {
+        const res = onRecordMovement({
+          produto_id: quickReplenishProduct.id,
+          tipo: 'entrada',
+          quantidade: Number(quickQty),
+          motivo: quickReason.trim() || 'Reposição rápida de estoque crítico',
+          documento_ref: quickDocRef.trim() || undefined,
+          valor_unitario: quickReplenishProduct.preco_custo || undefined
+        });
+        if (res.success) {
+          setActionSuccessMessage(`Reposição de +${quickQty} un para "${quickReplenishProduct.nome}" concluída!`);
+          setTimeout(() => setActionSuccessMessage(null), 4000);
+        }
+      } else if (onReplenishProduct) {
+        onReplenishProduct(quickReplenishProduct.id);
+      }
+      setQuickReplenishProduct(null);
+    } finally {
+      setQuickSubmitting(false);
+    }
+  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -138,8 +235,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className="text-xs font-semibold uppercase tracking-wider">Usuários Ativos</span>
               <Users className="w-5 h-5 text-indigo-600" />
             </div>
-            <div className="text-2xl font-extrabold text-slate-900">18</div>
-            <p className="text-xs text-slate-500">Distribuídos entre as empresas</p>
+            <div className="text-2xl font-extrabold text-slate-900">{usuariosAtivos}</div>
+            <p className="text-xs text-slate-500">
+              {usuariosAtivos === 0 ? 'Nenhum usuário nas empresas' : `${usuariosAtivos} distribuídos entre as empresas`}
+            </p>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-2">
@@ -239,59 +338,250 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Grid: Alertas de Reposição + Últimas Movimentações */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Alertas de Estoque Crítico */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
-          <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
-              <h3 className="text-sm font-bold text-slate-900">Alertas de Reposição de Estoque</h3>
+      {/* SEÇÃO: ALERTAS CRÍTICOS */}
+      <div id="secao-alertas-criticos" className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 ${
+              produtosCriticos.length > 0 ? 'bg-red-100 text-red-600 ring-4 ring-red-50' : 'bg-emerald-100 text-emerald-600'
+            }`}>
+              <AlertTriangle className="w-5 h-5" />
             </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">Alertas Críticos</h3>
+                {produtosCriticos.length > 0 ? (
+                  <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-red-100 text-red-700 animate-pulse border border-red-200">
+                    {produtosCriticos.length} {produtosCriticos.length === 1 ? 'item crítico' : 'itens críticos'}
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Estoque Seguro
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Produtos cujo saldo atual está igual ou abaixo do estoque mínimo estabelecido. Reponha com rapidez abaixo.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            {produtosCriticos.length > 0 && (
+              <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg text-xs font-medium text-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setCriticalFilter('todos')}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${
+                    criticalFilter === 'todos' ? 'bg-white shadow-xs text-slate-900 font-bold' : 'hover:text-slate-900'
+                  }`}
+                >
+                  Todos ({produtosCriticos.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCriticalFilter('esgotados')}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${
+                    criticalFilter === 'esgotados' ? 'bg-white shadow-xs text-red-700 font-bold' : 'hover:text-slate-900'
+                  }`}
+                >
+                  Esgotados ({zeradosCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCriticalFilter('baixo')}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${
+                    criticalFilter === 'baixo' ? 'bg-white shadow-xs text-amber-700 font-bold' : 'hover:text-slate-900'
+                  }`}
+                >
+                  Baixos ({baixoCount})
+                </button>
+              </div>
+            )}
+
             <button
+              type="button"
               onClick={() => onNavigate('produtos')}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200"
             >
-              <span>Ver todos</span>
+              <span>Ver Catálogo</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          <div className="p-4 flex-1">
-            {produtosCriticos.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-xs">
-                Nenhum produto está com estoque abaixo do mínimo estabelecido.
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {produtosCriticos.map(prod => (
-                  <div 
-                    key={prod.id} 
-                    className="p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors flex items-center justify-between bg-slate-50/50"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">{prod.nome}</div>
-                      <div className="text-[11px] text-slate-500">
-                        SKU: {prod.sku} • Mínimo Requerido: {prod.estoque_minimo} {prod.unidade_medida}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                        prod.estoque_atual === 0 
-                          ? 'bg-red-100 text-red-700' 
-                          : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {prod.estoque_atual === 0 ? 'Esgotado (0)' : `${prod.estoque_atual} ${prod.unidade_medida}`}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Últimas Movimentações */}
+        {/* Mensagem de Sucesso de Ação Rápida */}
+        {actionSuccessMessage && (
+          <div className="m-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between">
+            <div className="flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{actionSuccessMessage}</span>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setActionSuccessMessage(null)} 
+              className="text-emerald-700 hover:text-emerald-900 font-bold px-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        <div className="p-4 sm:p-5">
+          {displayedCriticalProducts.length === 0 ? (
+            <div className="text-center py-10 px-4">
+              <div className="inline-flex p-3 rounded-full bg-emerald-50 text-emerald-600 mb-3 border border-emerald-100">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <h4 className="text-sm font-bold text-slate-800">
+                {produtosCriticos.length === 0 
+                  ? 'Estoque 100% Regularizado!' 
+                  : 'Nenhum item encontrado para este filtro.'}
+              </h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                {produtosCriticos.length === 0
+                  ? 'Todos os produtos cadastrados estão com saldo superior à margem mínima de segurança.'
+                  : 'Alterne os filtros acima para visualizar outros produtos sob monitoramento.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {displayedCriticalProducts.map(prod => {
+                const deficit = Math.max(1, prod.estoque_minimo - prod.estoque_atual);
+                const isZero = prod.estoque_atual <= 0;
+                const ratio = prod.estoque_minimo > 0 
+                  ? Math.min(100, Math.round((prod.estoque_atual / prod.estoque_minimo) * 100)) 
+                  : 0;
+
+                return (
+                  <div
+                    key={prod.id}
+                    className={`rounded-xl border p-4 transition-all flex flex-col justify-between shadow-xs ${
+                      isZero 
+                        ? 'border-red-200 bg-red-50/40 hover:border-red-300' 
+                        : 'border-amber-200 bg-amber-50/30 hover:border-amber-300'
+                    }`}
+                  >
+                    <div>
+                      {/* Top Info */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-slate-900 truncate" title={prod.nome}>
+                            {prod.nome}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                            <span className="font-mono bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                              {prod.sku}
+                            </span>
+                            <span>•</span>
+                            <span className="truncate">{prod.categoria}</span>
+                            {prod.localizacao && (
+                              <>
+                                <span>•</span>
+                                <span className="truncate text-slate-400">{prod.localizacao}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <span className={`shrink-0 text-[11px] font-extrabold px-2 py-0.5 rounded-full border ${
+                          isZero 
+                            ? 'bg-red-100 text-red-700 border-red-200' 
+                            : 'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          {isZero ? 'Esgotado (0)' : 'Estoque Baixo'}
+                        </span>
+                      </div>
+
+                      {/* Medidor de Estoque */}
+                      <div className="space-y-1.5 my-3 p-2.5 bg-white rounded-lg border border-slate-200/80">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className={isZero ? 'text-red-600 font-bold' : 'text-amber-700'}>
+                            Atual: {prod.estoque_atual} {prod.unidade_medida}
+                          </span>
+                          <span className="text-slate-500 text-[11px]">
+                            Mínimo: {prod.estoque_minimo} {prod.unidade_medida}
+                          </span>
+                        </div>
+
+                        {/* Barra de Progresso do Estoque */}
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all ${
+                              isZero ? 'bg-red-500 w-0' : 'bg-amber-500'
+                            }`}
+                            style={{ width: `${Math.max(5, ratio)}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                          <span className="text-red-600 font-medium">
+                            Déficit: -{deficit} {prod.unidade_medida}
+                          </span>
+                          <span>Preço Custo: {formatCurrency(prod.preco_custo)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ações Rápidas de Reposição */}
+                    <div className="pt-2 border-t border-slate-200/60 flex flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* 1-Clique: Repor Mínimo */}
+                        <button
+                          type="button"
+                          onClick={() => handleOneClickReplenish(prod)}
+                          title={`Repor imediatamente ${deficit} ${prod.unidade_medida} para alcançar o estoque mínimo`}
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-xs"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          <span>Repor Mín (+{deficit})</span>
+                        </button>
+
+                        {/* Modal: Reposição Rápida */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenQuickModal(prod)}
+                          className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Boxes className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Repor Rápido</span>
+                        </button>
+                      </div>
+
+                      {/* Abrir tela completa de movimentação */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onReplenishProduct) {
+                            onReplenishProduct(prod.id);
+                          } else {
+                            onNavigate('estoque');
+                          }
+                        }}
+                        className="text-[11px] text-slate-500 hover:text-blue-600 font-medium flex items-center justify-center gap-1 py-0.5 transition-colors"
+                      >
+                        <ArrowUpRight className="w-3 h-3 text-blue-600" />
+                        <span>Entrada Detalhada (NF / Fornecedor)</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Grid: Histórico de Movimentações + Kardex */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico de Barras: Histórico de Movimentações */}
+        <StockMovementChart 
+          movements={movements} 
+          companyId={currentCompany?.id} 
+          isGlobalAdmin={isGlobalAdmin} 
+        />
+
+        {/* Últimas Movimentações (Kardex) */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
           <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -317,7 +607,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {recentMovements.map(mov => (
                   <div 
                     key={mov.id}
-                    className="p-3 rounded-lg border border-slate-100 bg-white flex items-center justify-between text-xs"
+                    className="p-3 rounded-lg border border-slate-100 bg-white flex items-center justify-between text-xs hover:border-slate-200 transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className={`p-1.5 rounded-md ${
@@ -354,6 +644,142 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* MODAL DE REPOSIÇÃO RÁPIDA DE ESTOQUE CRÍTICO */}
+      {quickReplenishProduct && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-900">Ação Rápida de Reposição</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickReplenishProduct(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmQuickReplenish} className="p-5 space-y-4">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                <div className="text-xs font-bold text-slate-900">{quickReplenishProduct.nome}</div>
+                <div className="text-[11px] text-slate-500">
+                  SKU: <span className="font-mono">{quickReplenishProduct.sku}</span> • Categoria: {quickReplenishProduct.categoria}
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1.5 text-slate-700 border-t border-slate-200 mt-2">
+                  <span>
+                    Saldo Atual: <strong className={quickReplenishProduct.estoque_atual <= 0 ? 'text-red-600 font-extrabold' : 'text-amber-700 font-bold'}>
+                      {quickReplenishProduct.estoque_atual} {quickReplenishProduct.unidade_medida}
+                    </strong>
+                  </span>
+                  <span>
+                    Estoque Mínimo: <strong>{quickReplenishProduct.estoque_minimo} {quickReplenishProduct.unidade_medida}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Quantidade a Adicionar ({quickReplenishProduct.unidade_medida}) *
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={quickQty}
+                    onChange={(e) => setQuickQty(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const def = Math.max(1, quickReplenishProduct.estoque_minimo - quickReplenishProduct.estoque_atual);
+                      setQuickQty(def);
+                    }}
+                    className="px-2.5 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-200"
+                    title="Ajustar quantidade exata para atingir o estoque mínimo"
+                  >
+                    Mínimo (+{Math.max(1, quickReplenishProduct.estoque_minimo - quickReplenishProduct.estoque_atual)})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickQty(prev => prev + 10)}
+                    className="px-2.5 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-200"
+                  >
+                    +10
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Saldo após entrada: <strong className="text-emerald-600 font-bold">{quickReplenishProduct.estoque_atual + Number(quickQty)} {quickReplenishProduct.unidade_medida}</strong>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Motivo / Observação
+                </label>
+                <input
+                  type="text"
+                  value={quickReason}
+                  onChange={(e) => setQuickReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  placeholder="Ex: Reposição rápida de estoque crítico"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Documento / NF (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={quickDocRef}
+                  onChange={(e) => setQuickDocRef(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  placeholder="Ex: NF-12345, Pedido #88"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prodId = quickReplenishProduct.id;
+                    setQuickReplenishProduct(null);
+                    if (onReplenishProduct) onReplenishProduct(prodId);
+                  }}
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium"
+                >
+                  <span>Formulário Completo</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuickReplenishProduct(null)}
+                    className="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={quickSubmitting || quickQty <= 0}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{quickSubmitting ? 'Salvando...' : 'Confirmar Reposição'}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

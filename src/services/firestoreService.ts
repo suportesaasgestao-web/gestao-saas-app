@@ -9,17 +9,17 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Company, User, Product, StockMovement, Ticket, CompanyStatus } from '../types';
-import { 
-  MOCK_COMPANIES, 
+import {
+  MOCK_COMPANIES,
   MOCK_USERS, 
   MOCK_PRODUCTS, 
   MOCK_MOVEMENTS, 
   MOCK_TICKETS 
 } from '../mockData';
 
-// Inicializar Firestore (banco limpo sem injeção de dados falsos)
+// A criação de administradores deve ocorrer no backend/provedor de identidade.
 export async function initializeFirestoreDatabase(): Promise<void> {
-  // O banco permanece 100% limpo até que o usuário cadastre sua própria empresa
+  return Promise.resolve();
 }
 
 // Listeners em tempo real

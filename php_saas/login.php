@@ -40,6 +40,9 @@
             </div>
             <button type="submit" class="btn btn-primary btn-block">Entrar no Painel</button>
             
+            <div class="auth-help-box">
+                <strong>Credenciais de Demonstração:</strong><br>
+            </div>
         </form>
 
         <!-- TAB 2: CADASTRO DE EMPRESA -->

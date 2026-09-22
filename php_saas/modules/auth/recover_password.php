@@ -47,9 +47,19 @@ if ($action === 'request') {
         ':expira_em' => $expiraEm
     ]);
 
+    // Simulação do envio de e-mail (usar mail() ou PHPMailer em ambiente de produção)
+    $linkRecuperacao = "http://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . "/login.php?token=" . $token;
+
     echo json_encode([
         'success' => true,
-        'message' => 'Se o e-mail estiver cadastrado, as instruções de recuperação foram enviadas.'
+        'message' => 'E-mail de recuperação gerado com sucesso!',
+        'simulated_email' => [
+            'to' => $email,
+            'subject' => 'Recuperação de Senha - GestãoSaaS',
+            'token' => $token,
+            'link' => $linkRecuperacao,
+            'expires' => $expiraEm
+        ]
     ]);
     exit;
 }

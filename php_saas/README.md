@@ -69,8 +69,13 @@ php -S localhost:8000
 ```
 Abra o navegador em `http://localhost:8000`.
 
-## 👤 Primeiro acesso
+## 👤 Administradores
 
-Cadastre uma empresa pela tela de login e configure o primeiro usuário
-administrador diretamente no ambiente da implantação. Não existem credenciais
-padrão neste repositório.
+Não existem credenciais padrão neste repositório. Crie os administradores
+diretamente no provedor de identidade/ambiente seguro da implantação e nunca
+publique senhas no código, no README ou na interface para clientes.
+
+- **Dono de Empresa (Tenant):**
+  - Cadastre sua empresa na aba "Cadastrar Empresa" da tela de login.
+  - Faça login como admin e aprove a empresa cadastrada.
+  - Acesse com o e-mail ou CNPJ cadastrado.

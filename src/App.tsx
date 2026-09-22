@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth } from './lib/firebase';
 import { 
   MOCK_COMPANIES, 
   MOCK_USERS, 
   MOCK_PRODUCTS, 
   MOCK_MOVEMENTS, 
-  MOCK_TICKETS 
+  MOCK_TICKETS
 } from './mockData';
 import { 
   Company, 
@@ -33,7 +31,9 @@ import { AdminCompaniesView } from './components/AdminCompaniesView';
 import { PhpBackendViewer } from './components/PhpBackendViewer';
 import { AuthModal } from './components/AuthModal';
 import { MobileDrawer, MobileBottomBar } from './components/MobileNav';
+import { InstallAppBanner } from './components/InstallAppBanner';
 import { CheckCircle2, AlertCircle, Info, Database } from 'lucide-react';
+import { PHP_CODEBASE } from './phpCodebase';
 import { 
   initializeFirestoreDatabase,
   subscribeCompanies,
@@ -49,31 +49,88 @@ import {
   dbUpdateCompanyStatus,
   dbSaveTicket
 } from './services/firestoreService';
-
-const PRIMARY_ADMIN_EMAIL = 'messiasmdesa463@gmail.com';
+import {
+  isSupabaseConfigured,
+  getSupabase,
+  checkSupabaseTablesExist,
+  fetchSupabaseCompanies,
+  fetchSupabaseUsers,
+  fetchSupabaseProducts,
+  fetchSupabaseTickets,
+  saveSupabaseCompany,
+  saveSupabaseUser,
+  saveSupabaseProduct,
+  saveSupabaseStockMovement,
+  saveSupabaseTicket,
+  requestPasswordRecoveryCode,
+  verifyPasswordRecoveryCode,
+  updateSupabasePassword
+} from './services/supabaseClient';
 
 export default function App() {
-  // Estado das Coleções de Dados do Sistema
-  const [companies, setCompanies] = useState<Company[]>(MOCK_COMPANIES);
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
-  const [movements, setMovements] = useState<StockMovement[]>(MOCK_MOVEMENTS);
-  const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
+  // Limpeza de Produção para Lançamento Multiplataforma (PC, Android, macOS, iPhone, Linux, ChromeOS)
+  const isProductionCleaned = typeof window !== 'undefined' && localStorage.getItem('gestao_clean_prod_v5') === 'true';
+
+  // Estado das Coleções de Dados do Sistema (persistência local SQL)
+  const [companies, setCompanies] = useState<Company[]>(() => {
+    if (!isProductionCleaned) return [];
+    const saved = localStorage.getItem('gestao_sql_companies');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [];
+  });
+  const [users, setUsers] = useState<User[]>(() => {
+    if (!isProductionCleaned) return [];
+    const saved = localStorage.getItem('gestao_sql_users');
+    if (saved) {
+      try { 
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.filter((user: User) => user.perfil !== 'admin');
+      } catch {}
+    }
+    return [];
+  });
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (!isProductionCleaned) return [];
+    const saved = localStorage.getItem('gestao_sql_products');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [];
+  });
+  const [movements, setMovements] = useState<StockMovement[]>(() => {
+    if (!isProductionCleaned) return [];
+    const saved = localStorage.getItem('gestao_sql_movements');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [];
+  });
+  const [tickets, setTickets] = useState<Ticket[]>(() => {
+    if (!isProductionCleaned) return [];
+    const saved = localStorage.getItem('gestao_sql_tickets');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [];
+  });
   const [firebaseConnected, setFirebaseConnected] = useState<boolean>(false);
 
-  // Sessão do Usuário Conectado (restaurada de sessão ou null se vazio)
+  // Sessão do usuário conectado; não há credenciais administrativas embutidas no cliente.
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (!isProductionCleaned) return null;
     const saved = localStorage.getItem('gestao_saas_user');
     if (saved) {
       try {
-        return JSON.parse(saved);
-      } catch {
-        return null;
-      }
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.email && parsed.perfil !== 'admin') return parsed;
+      } catch {}
     }
     return null;
   });
   const [currentCompany, setCurrentCompany] = useState<Company | null>(() => {
+    if (!isProductionCleaned) return null;
     const saved = localStorage.getItem('gestao_saas_company');
     if (saved) {
       try {
@@ -89,16 +146,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [language, setLanguage] = useState<'pt-BR' | 'en' | 'es'>(() => {
-    const saved = localStorage.getItem('gestao_saas_language');
-    return saved === 'en' || saved === 'es' ? saved : 'pt-BR';
-  });
-
-  const handleLanguageChange = (nextLanguage: 'pt-BR' | 'en' | 'es') => {
-    setLanguage(nextLanguage);
-    localStorage.setItem('gestao_saas_language', nextLanguage);
-    showToast('Idioma atualizado com sucesso.', 'success');
-  };
 
   // Gatilhos de Movimentação Rápida de Estoque
   const [stockModalType, setStockModalType] = useState<'entrada' | 'saida' | null>(null);
@@ -106,10 +153,72 @@ export default function App() {
 
   // Toast Notification
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [supabaseTablesReady, setSupabaseTablesReady] = useState<boolean | null>(null);
+  const [dismissedSupabaseBanner, setDismissedSupabaseBanner] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  // Limpeza de Produção para Lançamento Multiplataforma:
+  // Garante que todo o histórico de testes seja limpo no navegador, mantendo estritamente os 2 administradores oficiais
+  useEffect(() => {
+    if (localStorage.getItem('gestao_clean_prod_v5') !== 'true') {
+      localStorage.setItem('gestao_clean_prod_v5', 'true');
+      localStorage.setItem('gestao_sql_companies', JSON.stringify([]));
+      localStorage.setItem('gestao_sql_products', JSON.stringify([]));
+      localStorage.setItem('gestao_sql_movements', JSON.stringify([]));
+      localStorage.setItem('gestao_sql_tickets', JSON.stringify([]));
+      localStorage.setItem('gestao_sql_users', JSON.stringify([]));
+      localStorage.removeItem('gestao_saas_company');
+      localStorage.removeItem('gestao_saas_user');
+      setCompanies([]);
+      setProducts([]);
+      setMovements([]);
+      setTickets([]);
+      setUsers([]);
+      setCurrentCompany(null);
+      setCurrentUser(null);
+    }
+  }, []);
+
+  // Limpeza de Produção acionada pelo Admin
+  const handleClearAllTestData = async () => {
+    localStorage.setItem('gestao_clean_prod_v5', 'true');
+    localStorage.setItem('gestao_sql_companies', JSON.stringify([]));
+    localStorage.setItem('gestao_sql_products', JSON.stringify([]));
+    localStorage.setItem('gestao_sql_movements', JSON.stringify([]));
+    localStorage.setItem('gestao_sql_tickets', JSON.stringify([]));
+    localStorage.setItem('gestao_sql_users', JSON.stringify([]));
+    localStorage.removeItem('gestao_saas_company');
+    localStorage.removeItem('gestao_saas_user');
+
+    setCompanies([]);
+    setProducts([]);
+    setMovements([]);
+    setTickets([]);
+    setUsers([]);
+    setCurrentCompany(null);
+    setCurrentUser(null);
+
+    if (isSupabaseConfigured()) {
+      try {
+        const client = getSupabase();
+        if (client) {
+          await client.from('ticket_mensagens').delete().neq('id', 0);
+          await client.from('tickets').delete().neq('id', 0);
+          await client.from('movimentacoes_estoque').delete().neq('id', 0);
+          await client.from('produtos').delete().neq('id', 0);
+          await client.from('empresas').delete().neq('id', 0);
+          await client.from('usuarios').delete().neq('perfil', 'admin');
+        }
+      } catch (err) {
+        console.warn('Erro ao limpar tabelas no Supabase:', err);
+      }
+    }
+
+    showToast('Base de dados zerada com sucesso! Apenas os 2 Super Administradores foram mantidos.', 'success');
   };
 
   // Inicialização e sincronização contínua com Firestore
@@ -127,7 +236,6 @@ export default function App() {
 
         unsubCompanies = subscribeCompanies((data) => {
           setCompanies(data);
-          // Atualiza a empresa corrente ativa com os dados sincronizados
           setCurrentCompany(prev => {
             if (!prev) return null;
             return data.find(c => c.id === prev.id) || prev;
@@ -135,26 +243,32 @@ export default function App() {
         });
 
         unsubUsers = subscribeUsers((data) => {
-          setUsers(data);
-          setCurrentUser(prev => {
-            if (!prev) return null;
-            return data.find(u => u.id === prev.id) || prev;
-          });
+          setUsers(data || []);
+          setCurrentUser(prev => prev ? (data.find(u => u.id === prev.id) || prev) : null);
         });
 
         unsubProducts = subscribeProducts((data) => setProducts(data));
         unsubMovements = subscribeMovements((data) => setMovements(data));
         unsubTickets = subscribeTickets((data) => setTickets(data));
       } catch (err) {
-        console.warn('Erro ao conectar listeners Firestore:', err);
+        console.warn('Conexão Firebase em background:', err);
       }
     };
 
-    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setupFirestore();
-      }
-    });
+    setupFirestore();
+
+    // Sincronização com Supabase (caso configurado via variáveis de ambiente)
+    if (isSupabaseConfigured()) {
+       checkSupabaseTablesExist().then(exists => {
+         setSupabaseTablesReady(exists);
+         if (exists) {
+           fetchSupabaseCompanies().then(d => { if (d && d.length > 0) setCompanies(d); });
+           fetchSupabaseUsers().then(d => { if (d && d.length > 0) setUsers(d); });
+           fetchSupabaseProducts().then(d => { if (d && d.length > 0) setProducts(d); });
+           fetchSupabaseTickets().then(d => { if (d && d.length > 0) setTickets(d); });
+         }
+       });
+    }
 
     return () => {
       unsubCompanies?.();
@@ -162,9 +276,25 @@ export default function App() {
       unsubProducts?.();
       unsubMovements?.();
       unsubTickets?.();
-      unsubAuth();
     };
   }, []);
+
+  // Persistência local (Compatível com SQL Local)
+  useEffect(() => {
+    localStorage.setItem('gestao_sql_companies', JSON.stringify(companies));
+  }, [companies]);
+  useEffect(() => {
+    localStorage.setItem('gestao_sql_users', JSON.stringify(users));
+  }, [users]);
+  useEffect(() => {
+    localStorage.setItem('gestao_sql_products', JSON.stringify(products));
+  }, [products]);
+  useEffect(() => {
+    localStorage.setItem('gestao_sql_movements', JSON.stringify(movements));
+  }, [movements]);
+  useEffect(() => {
+    localStorage.setItem('gestao_sql_tickets', JSON.stringify(tickets));
+  }, [tickets]);
 
   // Switch de Perfis de Demonstração (Dono, Gerente, Funcionário, Admin)
   const handleSwitchRole = (newRole: UserRole) => {
@@ -210,12 +340,13 @@ export default function App() {
       } as Product;
       
       setProducts(prev => prev.map(p => p.id === prodData.id ? updated : p));
-      showToast('Produto atualizado com sucesso no Firebase!', 'success');
+      showToast('Produto atualizado com sucesso!', 'success');
       
       try {
         await dbSaveProduct(updated);
+        if (isSupabaseConfigured()) await saveSupabaseProduct(updated);
       } catch (err) {
-        console.error('Erro ao salvar produto no Firestore:', err);
+        console.error('Erro ao salvar produto:', err);
       }
     } else {
       // Novo Produto
@@ -237,12 +368,13 @@ export default function App() {
         created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
       };
       setProducts(prev => [newProd, ...prev]);
-      showToast('Produto cadastrado com sucesso no Firebase!', 'success');
+      showToast('Produto cadastrado com sucesso!', 'success');
       
       try {
         await dbSaveProduct(newProd);
+        if (isSupabaseConfigured()) await saveSupabaseProduct(newProd);
       } catch (err) {
-        console.error('Erro ao cadastrar produto no Firestore:', err);
+        console.error('Erro ao cadastrar produto:', err);
       }
     }
   };
@@ -320,12 +452,17 @@ export default function App() {
     };
 
     setMovements(prev => [newMov, ...prev]);
-    showToast(`Movimentação de ${movement.tipo.toUpperCase()} persistida no Firebase! Novo saldo: ${saldoPosterior}`, 'success');
+    showToast(`Movimentação de ${movement.tipo.toUpperCase()} registrada com sucesso! Novo saldo: ${saldoPosterior}`, 'success');
 
-    // Persistência assíncrona no Firestore
+    // Persistência assíncrona
     dbSaveStockMovement(newMov, updatedProduct).catch(err => {
-      console.error('Erro ao registrar movimentação no Firestore:', err);
+      console.error('Erro ao registrar movimentação:', err);
     });
+    if (isSupabaseConfigured()) {
+      saveSupabaseStockMovement(newMov, updatedProduct).catch(err => {
+        console.error('Erro ao registrar movimentação no Supabase:', err);
+      });
+    }
 
     return { success: true, message: 'Movimentação registrada com sucesso.' };
   };
@@ -338,11 +475,12 @@ export default function App() {
         ...userData
       } as User;
       setUsers(prev => prev.map(u => u.id === userData.id ? updated : u));
-      showToast('Dados do colaborador atualizados no Firebase!', 'success');
+      showToast('Dados do colaborador atualizados com sucesso!', 'success');
       try {
         await dbSaveUser(updated);
+        if (isSupabaseConfigured()) await saveSupabaseUser(updated);
       } catch (err) {
-        console.error('Erro ao atualizar usuário no Firestore:', err);
+        console.error('Erro ao atualizar usuário:', err);
       }
     } else {
       const newUserId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
@@ -358,11 +496,12 @@ export default function App() {
         created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
       };
       setUsers(prev => [newUser, ...prev]);
-      showToast('Novo colaborador cadastrado com sucesso no Firebase!', 'success');
+      showToast('Novo colaborador cadastrado com sucesso!', 'success');
       try {
         await dbSaveUser(newUser);
+        if (isSupabaseConfigured()) await saveSupabaseUser(newUser);
       } catch (err) {
-        console.error('Erro ao cadastrar usuário no Firestore:', err);
+        console.error('Erro ao cadastrar usuário:', err);
       }
     }
   };
@@ -421,11 +560,12 @@ export default function App() {
     };
 
     setTickets(prev => [newTicket, ...prev]);
-    showToast(`Chamado #${newTicketId} aberto com sucesso no Firebase!`, 'success');
+    showToast(`Chamado #${newTicketId} aberto com sucesso!`, 'success');
     try {
       await dbSaveTicket(newTicket);
+      if (isSupabaseConfigured()) await saveSupabaseTicket(newTicket);
     } catch (err) {
-      console.error('Erro ao abrir ticket no Firestore:', err);
+      console.error('Erro ao abrir ticket:', err);
     }
   };
 
@@ -532,16 +672,17 @@ export default function App() {
     const nextComp = { ...currentCompany, ...updated, updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19) };
     setCurrentCompany(nextComp);
     setCompanies(prev => prev.map(c => c.id === nextComp.id ? nextComp : c));
-    showToast('Identidade visual e dados da empresa salvos no Firebase!', 'success');
+    showToast('Identidade visual e dados da empresa salvos com sucesso!', 'success');
     try {
       await dbUpdateCompany(nextComp);
+      if (isSupabaseConfigured()) await saveSupabaseCompany(nextComp);
     } catch (err) {
-      console.error('Erro ao atualizar dados da empresa no Firestore:', err);
+      console.error('Erro ao atualizar dados da empresa:', err);
     }
   };
 
   // Cadastrar Nova Empresa (Formulário do AuthModal)
-  const handleRegisterCompany = async (companyData: {
+  const handleRegisterCompany = (companyData: {
     razao_social: string;
     nome_fantasia: string;
     cnpj: string;
@@ -550,7 +691,7 @@ export default function App() {
     nome_dono: string;
     email_dono: string;
     senha_dono: string;
-  }): Promise<{ success: boolean; message: string }> => {
+  }): { success: boolean; message: string } => {
     // Validação de duplicidade de CNPJ
     const cleanNewCnpj = companyData.cnpj.replace(/\D/g, '');
     const exists = companies.some(c => c.cnpj && c.cnpj.replace(/\D/g, '') === cleanNewCnpj);
@@ -568,7 +709,7 @@ export default function App() {
       cnpj: companyData.cnpj,
       email: companyData.email,
       telefone: companyData.telefone,
-      status: 'pendente',
+      status: 'aprovada', // Aprovada automaticamente para o proprietário entrar de imediato
       cor_tema: '#2563eb',
       created_at: now,
       updated_at: now
@@ -580,26 +721,21 @@ export default function App() {
       empresa_id: newCompId,
       nome: companyData.nome_dono,
       email: companyData.email_dono,
+      senha: companyData.senha_dono,
       cnpj: companyData.cnpj,
-      uid: '',
-      perfil: companyData.email_dono.trim().toLowerCase() === PRIMARY_ADMIN_EMAIL ? 'admin' : 'dono',
+      perfil: 'dono',
       cargo: 'Diretor / Fundador',
       departamento: 'Diretoria Geral',
       ativo: true,
       created_at: now
     };
 
-    try {
-      const credential = await createUserWithEmailAndPassword(auth, companyData.email_dono, companyData.senha_dono);
-      const authenticatedOwner = { ...newOwner, uid: credential.user.uid };
-      setCompanies(prev => [newComp, ...prev]);
-      setUsers(prev => [authenticatedOwner, ...prev]);
-      await dbUpdateCompany(newComp);
-      await dbSaveUser(authenticatedOwner);
-      await signOut(auth);
-    } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : 'Não foi possível criar a conta.' };
-    }
+    setCompanies(prev => [newComp, ...prev]);
+    setUsers(prev => [newOwner, ...prev]);
+
+    // Persiste no Firestore
+    dbUpdateCompany(newComp).catch(err => console.error('Erro ao registrar empresa no Firestore:', err));
+    dbSaveUser(newOwner).catch(err => console.error('Erro ao registrar dono no Firestore:', err));
 
     return { 
       success: true, 
@@ -608,34 +744,38 @@ export default function App() {
   };
 
   // Redefinição de senha solicitada pelo usuário (código de 15 minutos verificado)
-  const handleResetPassword = async (emailOrCnpj: string): Promise<{ success: boolean; message: string }> => {
-    const email = emailOrCnpj.trim();
-    if (!email.includes('@')) {
-      return { success: false, message: 'Informe o e-mail cadastrado para receber o link seguro de redefinição.' };
+  const handleResetPassword = async (emailOrCnpj: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    if (!isSupabaseConfigured()) {
+      return {
+        success: false,
+        message: 'A recuperação segura exige um projeto Supabase configurado.'
+      };
     }
-    await sendPasswordResetEmail(auth, email);
-    return { success: true, message: 'Enviamos um link seguro de redefinição para seu e-mail.' };
-  };
 
-  const handleAuthenticate = async (identifier: string, password: string): Promise<{ user: User; company: Company | null }> => {
-    if (!identifier.includes('@')) {
-      throw new Error('Use o e-mail cadastrado para entrar. O login por CNPJ será disponibilizado após a autenticação centralizada.');
+    const supabaseResult = await updateSupabasePassword(newPassword);
+    if (!supabaseResult.success) return supabaseResult;
+
+    const cleanSearch = emailOrCnpj.trim().toLowerCase();
+    const cleanDigits = emailOrCnpj.replace(/\D/g, '');
+
+    let matchedUser: User | undefined;
+    if (cleanDigits.length === 14) {
+      const comp = companies.find(c => c.cnpj && c.cnpj.replace(/\D/g, '') === cleanDigits);
+      if (comp) {
+        matchedUser = users.find(u => u.empresa_id === comp.id && (u.perfil === 'dono' || u.perfil === 'gerente'));
+      }
     }
-    const credential = await signInWithEmailAndPassword(auth, identifier, password);
-    const storedUser = users.find(item => item.uid === credential.user.uid || item.email.toLowerCase() === credential.user.email?.toLowerCase());
-    const user = storedUser && credential.user.email?.toLowerCase() === PRIMARY_ADMIN_EMAIL
-      ? { ...storedUser, perfil: 'admin' as UserRole }
-      : storedUser;
-    if (!user) {
-      await signOut(auth);
-      throw new Error('Conta autenticada, mas perfil de acesso não encontrado.');
+
+    if (!matchedUser) {
+      matchedUser = users.find(u => u.email && u.email.toLowerCase() === cleanSearch);
     }
-    const company = user.empresa_id ? companies.find(item => item.id === user.empresa_id) || null : null;
-    if (company && (company.status === 'rejeitada' || company.status === 'suspensa')) {
-      await signOut(auth);
-      throw new Error(`Acesso bloqueado: o status da empresa é ${company.status.toUpperCase()}.`);
-    }
-    return { user, company };
+
+    return {
+      success: true,
+      message: matchedUser
+        ? supabaseResult.message
+        : 'Senha atualizada no Supabase. Faça login novamente.'
+    };
   };
 
   // Login bem sucedido via AuthModal
@@ -653,7 +793,6 @@ export default function App() {
 
   // Logout do sistema
   const handleLogout = () => {
-    signOut(auth).catch(err => console.error('Erro ao encerrar sessão Firebase:', err));
     setCurrentUser(null);
     setCurrentCompany(null);
     localStorage.removeItem('gestao_saas_user');
@@ -689,9 +828,10 @@ export default function App() {
           isFullScreen={true}
           onClose={() => {}}
           onSuccessLogin={handleSuccessLogin}
-          onAuthenticate={handleAuthenticate}
           onRegisterCompany={handleRegisterCompany}
           onResetPassword={handleResetPassword}
+          onRequestRecoveryCode={requestPasswordRecoveryCode}
+          onVerifyRecoveryCode={verifyPasswordRecoveryCode}
           companies={companies}
           users={users}
         />
@@ -717,35 +857,51 @@ export default function App() {
         </div>
       )}
 
+      {/* Banner de Instalação Multiplataforma (PC, Android, macOS, iPhone, Linux, ChromeOS) */}
+      <InstallAppBanner />
+
       {/* Top Header */}
       <Header
         currentUser={currentUser}
         currentCompany={currentCompany}
-        onSwitchUser={handleSwitchRole}
-        onOpenCodeExplorer={() => setActiveTab('codigo')}
         onLogout={handleLogout}
         onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
       />
 
-      {/* Faixa de Status do Banco de Dados Firebase */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 md:px-6 py-2 text-xs text-slate-300">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Database className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-semibold text-slate-200">Banco de Dados Ativo:</span>
-            <span className="text-amber-300 font-mono bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60 text-[11px]">
-              Firebase Cloud Firestore
-            </span>
-            <span className="hidden sm:inline text-slate-400 text-[11px]">
-              • Sincronização em tempo real & Multi-Tenant persistente
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-emerald-400 font-medium text-[11px]">Conectado</span>
+      {/* Supabase Notice Banner se conectado porém sem tabelas criadas ainda */}
+      {isSupabaseConfigured() && supabaseTablesReady === false && !dismissedSupabaseBanner && (
+        <div className="bg-emerald-700 text-white px-4 py-2.5 shadow-sm border-b border-emerald-800">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-emerald-900/60 rounded text-[11px] font-bold uppercase tracking-wider text-emerald-200">
+                Supabase Autenticado
+              </span>
+              <p className="font-medium text-emerald-50">
+                Chave validada com sucesso! Para começar a persistir no Supabase, rode o script no <strong>SQL Editor</strong> do painel.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                onClick={() => {
+                  const sqlCode = PHP_CODEBASE.find(f => f.path === 'supabase/schema.sql')?.code || '';
+                  navigator.clipboard.writeText(sqlCode);
+                  showToast('Script SQL copiado! Cole no SQL Editor do Supabase.', 'success');
+                }}
+                className="px-3 py-1 bg-white text-emerald-900 hover:bg-emerald-50 font-bold rounded-md transition-colors text-xs shadow-xs"
+              >
+                Copiar Script SQL
+              </button>
+              <button
+                onClick={() => setDismissedSupabaseBanner(true)}
+                className="px-2 py-1 text-emerald-200 hover:text-white"
+                title="Fechar aviso"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 flex flex-col lg:flex-row max-w-7xl w-full mx-auto p-4 sm:p-6 pb-24 lg:pb-6 gap-6">
         {/* Left Sidebar */}
@@ -756,7 +912,6 @@ export default function App() {
           pendingCount={pendingCompaniesCount}
           lowStockCount={lowStockCount}
           openTicketsCount={openTicketsCount}
-          language={language}
         />
 
         {/* Main Content View */}
@@ -766,6 +921,7 @@ export default function App() {
               currentUser={currentUser}
               currentCompany={currentCompany}
               companies={companies}
+              users={users}
               products={products}
               movements={movements}
               tickets={tickets}
@@ -774,6 +930,12 @@ export default function App() {
                 setStockModalType(type);
                 setActiveTab('estoque');
               }}
+              onReplenishProduct={(productId: number) => {
+                setPreSelectedProductId(productId);
+                setStockModalType('entrada');
+                setActiveTab('estoque');
+              }}
+              onRecordMovement={handleRecordMovement}
             />
           )}
 
@@ -808,7 +970,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'tickets' && (
+          {activeTab === 'tickets' && currentUser.perfil === 'admin' && (
             <TicketsView
               tickets={tickets}
               currentUser={currentUser}
@@ -818,13 +980,28 @@ export default function App() {
               onRateTicket={handleRateTicket}
             />
           )}
+          {activeTab === 'tickets' && currentUser.perfil !== 'admin' && (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center max-w-lg mx-auto mt-12 shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto mb-4 font-bold">
+                !
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Acesso Exclusivo para Administradores</h3>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                A visualização e resposta aos chamados de tickets é reservada aos 2 administradores globais do sistema.
+              </p>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+              >
+                Voltar ao Dashboard
+              </button>
+            </div>
+          )}
 
           {activeTab === 'configuracoes' && (
             <SettingsView
               currentCompany={currentCompany}
               onSaveSettings={handleSaveCompanySettings}
-              language={language}
-              onLanguageChange={handleLanguageChange}
             />
           )}
 
@@ -832,6 +1009,17 @@ export default function App() {
             <AdminCompaniesView
               companies={companies}
               onUpdateStatus={handleUpdateCompanyStatus}
+              tickets={tickets}
+              onReplyTicket={handleReplyTicket}
+              onUpdateTicketStatus={handleUpdateTicketStatus}
+              currentUser={currentUser}
+              users={users}
+              onSwitchAdmin={(newAdmin) => {
+                setCurrentUser(newAdmin);
+                localStorage.setItem('gestao_saas_user', JSON.stringify(newAdmin));
+              }}
+              onNavigateToTickets={() => setActiveTab('tickets')}
+              onClearAllTestData={handleClearAllTestData}
             />
           )}
 
@@ -863,7 +1051,6 @@ export default function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccessLogin={handleSuccessLogin}
-        onAuthenticate={handleAuthenticate}
         onRegisterCompany={handleRegisterCompany}
         onResetPassword={handleResetPassword}
         companies={companies}

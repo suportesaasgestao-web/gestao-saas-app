@@ -56,11 +56,11 @@ export const MobileDrawer: React.FC<MobileNavProps> = ({
     },
     {
       id: 'admin-empresas' as ActiveTab,
-      label: 'Aprovação de Empresas',
+      label: 'Painel de Admin',
       icon: Building2,
       roles: ['admin'],
-      badge: pendingCount > 0 ? `${pendingCount} pendente` : null,
-      badgeColor: 'bg-amber-100 text-amber-800'
+      badge: (pendingCount + openTicketsCount) > 0 ? `${pendingCount + openTicketsCount} pendências` : null,
+      badgeColor: 'bg-purple-100 text-purple-800'
     },
     {
       id: 'produtos' as ActiveTab,
@@ -86,9 +86,9 @@ export const MobileDrawer: React.FC<MobileNavProps> = ({
     },
     {
       id: 'tickets' as ActiveTab,
-      label: 'Central de Tickets',
+      label: 'Chamados de Suporte',
       icon: LifeBuoy,
-      roles: ['admin', 'dono', 'gerente', 'funcionario'],
+      roles: ['admin'],
       badge: openTicketsCount > 0 ? `${openTicketsCount} abertos` : null,
       badgeColor: 'bg-blue-100 text-blue-700'
     },
