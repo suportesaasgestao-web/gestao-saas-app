@@ -9,12 +9,12 @@ Use as tags abaixo para baixar diretamente o pacote de cada plataforma:
 
 | Plataforma | Download |
 | --- | --- |
-| Windows / PC | [**BAIXAR WINDOWS**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.1/GestaoSaaS.Setup.0.1.0.exe) |
-| Android APK | [**BAIXAR ANDROID**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.1/app-debug.apk) |
-| Linux | [**BAIXAR LINUX**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.1/GestaoSaaS-0.1.0.AppImage) |
+| Windows / PC | [**BAIXAR WINDOWS**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.2/GestaoSaaS.Setup.0.1.0.exe) |
+| Android APK | [**BAIXAR ANDROID**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.2/app-debug.apk) |
+| Linux | [**BAIXAR LINUX**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.2/GestaoSaaS-0.1.0.AppImage) |
 | macOS | Em preparação |
 
-Os links de download são arquivos públicos da Release `v0.1.1`; não exigem
+Os links de download são arquivos públicos da Release `v0.1.2`; não exigem
 acesso aos Artifacts do GitHub. O pacote macOS será disponibilizado após a
 correção da compilação específica para macOS.
 
