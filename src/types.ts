@@ -40,6 +40,7 @@ export interface User {
   cargo?: string;
   departamento?: string;
   perfil: UserRole;
+  tag?: 'ADMIN' | 'DONO' | 'GERENTE' | 'FUNCIONARIO';
   ativo: boolean;
   ultimo_acesso?: string;
   created_at: string;

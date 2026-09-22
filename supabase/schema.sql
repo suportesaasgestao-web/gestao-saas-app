@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     email TEXT NOT NULL UNIQUE,
     senha TEXT NOT NULL,
     perfil TEXT NOT NULL DEFAULT 'funcionario' CHECK (perfil IN ('admin', 'dono', 'gerente', 'funcionario')),
+    tag TEXT NOT NULL DEFAULT 'FUNCIONARIO' CHECK (tag IN ('ADMIN', 'DONO', 'GERENTE', 'FUNCIONARIO')),
     cargo VARCHAR(100),
     departamento VARCHAR(100),
     ativo BOOLEAN NOT NULL DEFAULT true,
@@ -48,6 +49,28 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
 CREATE INDEX IF NOT EXISTS idx_usuarios_empresa ON public.usuarios (empresa_id);
 CREATE INDEX IF NOT EXISTS idx_usuarios_email ON public.usuarios (email);
 CREATE INDEX IF NOT EXISTS idx_usuarios_perfil ON public.usuarios (perfil);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS tag TEXT NOT NULL DEFAULT 'FUNCIONARIO';
+ALTER TABLE public.usuarios DROP CONSTRAINT IF EXISTS usuarios_tag_check;
+ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_tag_check CHECK (tag IN ('ADMIN', 'DONO', 'GERENTE', 'FUNCIONARIO'));
+
+-- Tag visual derivada do perfil; nunca armazena senha ou código de acesso.
+CREATE OR REPLACE FUNCTION public.handle_user_tag()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.tag = CASE NEW.perfil
+        WHEN 'admin' THEN 'ADMIN'
+        WHEN 'dono' THEN 'DONO'
+        WHEN 'gerente' THEN 'GERENTE'
+        ELSE 'FUNCIONARIO'
+    END;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_user_tag ON public.usuarios;
+CREATE TRIGGER set_user_tag
+    BEFORE INSERT OR UPDATE OF perfil ON public.usuarios
+    FOR EACH ROW EXECUTE FUNCTION public.handle_user_tag();
 
 -- 4. TABELA DE PRODUTOS
 CREATE TABLE IF NOT EXISTS public.produtos (
@@ -177,4 +200,3 @@ GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
-

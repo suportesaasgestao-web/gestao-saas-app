@@ -33,6 +33,10 @@ visualizam apenas o fluxo normal de autenticação; autorizações administrativ
 devem ser verificadas no backend/provedor de identidade, nunca apenas no
 frontend.
 
+Administradores podem ser identificados pela tag visual `ADMIN`. Essa tag é
+derivada do campo de perfil no banco de dados e não representa senha, código ou
+atalho de login.
+
 ## Requisitos
 
 - Node.js 20+ e npm (ou Bun)
