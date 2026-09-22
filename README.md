@@ -5,16 +5,21 @@
 
 ## Downloads de pré-lançamento
 
-- **Código-fonte:** https://github.com/suportesaasgestao-web/gestao-saas-app
-- **Windows / PC:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
-- **Android APK:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
-- **Linux:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
-- **macOS:** [Baixar nos Artifacts da última compilação](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/runs/35789123889)
-- **Todas as compilações:** https://github.com/suportesaasgestao-web/gestao-saas-app/actions
+Use as tags abaixo para baixar diretamente o pacote de cada plataforma:
 
-Na página da compilação, role até **Artifacts** e escolha o pacote da
-plataforma desejada: `gestao-saas-windows`, `gestao-saas-android`,
-`gestao-saas-linux` ou `gestao-saas-macos`.
+| Plataforma | Download |
+| --- | --- |
+| Windows / PC | [**BAIXAR WINDOWS**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10720884107) |
+| Android APK | [**BAIXAR ANDROID**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721137419) |
+| Linux | [**BAIXAR LINUX**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721138210) |
+| macOS | [**BAIXAR macOS**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721282026) |
+
+- [**VER TODAS AS COMPILAÇÕES**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions)
+- [**ABRIR O REPOSITÓRIO**](https://github.com/suportesaasgestao-web/gestao-saas-app)
+
+Os links de download são os Artifacts oficiais da última compilação. O GitHub
+pode solicitar login para iniciar o download; depois, extraia o arquivo `.zip`
+e execute o instalador ou APK incluído.
 
 Sistema de gestão empresarial multiempresa para cadastro de organizações,
 produtos, estoque, colaboradores e chamados de suporte. A interface é
