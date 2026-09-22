@@ -9,14 +9,14 @@ Use as tags abaixo para baixar diretamente o pacote de cada plataforma:
 
 | Plataforma | Download |
 | --- | --- |
-| Windows / PC | [**BAIXAR WINDOWS**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10720884107) |
-| Android APK | [**BAIXAR ANDROID**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721137419) |
-| Linux | [**BAIXAR LINUX**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721138210) |
-| macOS | [**BAIXAR macOS**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721282026) |
+| Windows / PC | [**BAIXAR WINDOWS**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.1/GestaoSaaS.Setup.0.1.0.exe) |
+| Android APK | [**BAIXAR ANDROID**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.1/app-debug.apk) |
+| Linux | [**BAIXAR LINUX**](https://github.com/suportesaasgestao-web/gestao-saas-app/releases/download/v0.1.1/GestaoSaaS-0.1.0.AppImage) |
+| macOS | Em preparação |
 
-Os links de download são os Artifacts oficiais da última compilação. O GitHub
-pode solicitar login para iniciar o download; depois, extraia o arquivo `.zip`
-e execute o instalador ou APK incluído.
+Os links de download são arquivos públicos da Release `v0.1.1`; não exigem
+acesso aos Artifacts do GitHub. O pacote macOS será disponibilizado após a
+correção da compilação específica para macOS.
 
 Sistema de gestão empresarial multiempresa para cadastro de organizações,
 produtos, estoque, colaboradores e chamados de suporte. A interface é
