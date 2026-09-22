@@ -14,9 +14,6 @@ Use as tags abaixo para baixar diretamente o pacote de cada plataforma:
 | Linux | [**BAIXAR LINUX**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721138210) |
 | macOS | [**BAIXAR macOS**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions/artifacts/10721282026) |
 
-- [**VER TODAS AS COMPILAÇÕES**](https://github.com/suportesaasgestao-web/gestao-saas-app/actions)
-- [**ABRIR O REPOSITÓRIO**](https://github.com/suportesaasgestao-web/gestao-saas-app)
-
 Os links de download são os Artifacts oficiais da última compilação. O GitHub
 pode solicitar login para iniciar o download; depois, extraia o arquivo `.zip`
 e execute o instalador ou APK incluído.
