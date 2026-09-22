@@ -255,17 +255,19 @@ export default function App() {
       }
     };
 
-    setupFirestore();
+    if (!isSupabaseConfigured()) {
+      setupFirestore();
+    }
 
     // Sincronização com Supabase (caso configurado via variáveis de ambiente)
     if (isSupabaseConfigured()) {
        checkSupabaseTablesExist().then(exists => {
          setSupabaseTablesReady(exists);
          if (exists) {
-           fetchSupabaseCompanies().then(d => { if (d && d.length > 0) setCompanies(d); });
-           fetchSupabaseUsers().then(d => { if (d && d.length > 0) setUsers(d); });
-           fetchSupabaseProducts().then(d => { if (d && d.length > 0) setProducts(d); });
-           fetchSupabaseTickets().then(d => { if (d && d.length > 0) setTickets(d); });
+           fetchSupabaseCompanies().then(d => { if (d !== null) setCompanies(d); });
+           fetchSupabaseUsers().then(d => { if (d !== null) setUsers(d); });
+           fetchSupabaseProducts().then(d => { if (d !== null) setProducts(d); });
+           fetchSupabaseTickets().then(d => { if (d !== null) setTickets(d); });
          }
        });
     }
