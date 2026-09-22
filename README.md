@@ -1,4 +1,7 @@
-# GestãoSaaS
+# GestãoSaaS — Pré-lançamento
+
+> **Status:** versão de pré-lançamento para validação, testes e preparação da
+> publicação oficial.
 
 Sistema de gestão empresarial multiempresa para cadastro de organizações,
 produtos, estoque, colaboradores e chamados de suporte. A interface é
@@ -9,9 +12,8 @@ aplicativo desktop via Electron.
 
 Credenciais de administradores **não são distribuídas neste repositório**, não
 aparecem na tela de login e não ficam embutidas no bundle do cliente. Provisione
-os administradores no Supabase Auth ou no backend da implantação, aplique RLS e
-use variáveis de ambiente para as chaves públicas. Nunca publique a
-`service_role key`, senhas ou tokens.
+os administradores somente no ambiente seguro da implantação e nunca publique
+senhas ou tokens.
 
 O projeto não inclui “acesso direto” para administradores. Usuários e clientes
 visualizam apenas o fluxo normal de autenticação; autorizações administrativas
@@ -24,8 +26,6 @@ frontend.
 - Android Studio e JDK 17 para gerar o APK
 - Xcode em macOS para gerar o aplicativo macOS/iOS
 - Electron Builder para os instaladores desktop
-- Projeto Supabase configurado para autenticação e persistência
-
 ## Configuração
 
 1. Instale as dependências:
@@ -35,20 +35,10 @@ frontend.
    ```
 
 2. Copie `.env.example` para `.env.local` e preencha somente as variáveis
-   necessárias:
+   necessárias para o ambiente de desenvolvimento.
 
-   ```env
-   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-   VITE_SUPABASE_ANON_KEY=sua-chave-anon
-   ```
-
-3. Execute `supabase/schema.sql` no SQL Editor do Supabase. Em produção,
-   substitua políticas permissivas por políticas RLS vinculadas ao usuário,
-   empresa e perfil.
-
-4. Configure o provedor de e-mail do Supabase. O botão **Esqueceu sua senha?**
-   envia um código real por e-mail, valida o código por até 15 minutos e
-   atualiza a senha através de `supabase.auth.updateUser`.
+3. Antes de publicar, configure o provedor de autenticação, o banco de dados,
+   as políticas de acesso e o serviço de e-mail no ambiente oficial.
 
 ## Execução e validação
 
@@ -105,7 +95,6 @@ subprocessadores e canal de atendimento.
 ## Estrutura
 
 - `src/`: aplicação React/TypeScript
-- `supabase/`: schema e configuração de persistência
 - `android/`: projeto Capacitor Android
 - `electron/`: processo principal desktop
 - `php_saas/`: backend PHP legado opcional
