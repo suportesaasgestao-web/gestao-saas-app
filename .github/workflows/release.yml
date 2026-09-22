@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+env:
+  VITE_SUPABASE_URL: https://cjimbazaifcztalheack.supabase.co
+  VITE_SUPABASE_ANON_KEY: sb_publishable_CrFb1MxH3kwfNKxW1gks7w_bCRHaIvR
+
 jobs:
   desktop:
     name: Desktop (${{ matrix.platform }})
