@@ -50,6 +50,11 @@ npm run build
 
 ## Pacotes multiplataforma
 
+O workflow **Build GestãoSaaS** em `.github/workflows/release.yml` gera
+automaticamente os pacotes para Windows/PC, Linux, macOS e Android. Execute-o
+manualmente na aba **Actions** ou crie uma tag no formato `v0.1.0` para gerar
+uma release pública com os arquivos para download.
+
 ### Android APK
 
 ```bash
@@ -72,6 +77,16 @@ npx electron-builder --win --linux --mac
 
 O alvo macOS só pode ser assinado e empacotado em um host macOS. Os artefatos
 desktop ficam em `release/` quando o empacotamento termina.
+
+Para testar localmente no Windows:
+
+```bash
+npm run package:win
+```
+
+Os comandos `npm run package:linux`, `npm run package:mac` e
+`npm run package:all` também estão disponíveis. O macOS deve ser compilado em
+um runner ou computador macOS; o workflow já usa `macos-latest`.
 
 ### PWA
 
