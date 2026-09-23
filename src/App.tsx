@@ -4,7 +4,10 @@ import {
   MOCK_USERS, 
   MOCK_PRODUCTS, 
   MOCK_MOVEMENTS, 
-  MOCK_TICKETS
+  MOCK_TICKETS,
+  DEFAULT_ADMIN_USER,
+  ADMIN_1,
+  ADMIN_2
 } from './mockData';
 import { 
   Company, 
@@ -31,7 +34,6 @@ import { AdminCompaniesView } from './components/AdminCompaniesView';
 import { PhpBackendViewer } from './components/PhpBackendViewer';
 import { AuthModal } from './components/AuthModal';
 import { MobileDrawer, MobileBottomBar } from './components/MobileNav';
-import { InstallAppBanner } from './components/InstallAppBanner';
 import { CheckCircle2, AlertCircle, Info, Database } from 'lucide-react';
 import { PHP_CODEBASE } from './phpCodebase';
 import { 
@@ -45,9 +47,11 @@ import {
   dbDeleteProduct,
   dbSaveStockMovement,
   dbSaveUser,
+  dbDeleteUser,
   dbUpdateCompany,
   dbUpdateCompanyStatus,
-  dbSaveTicket
+  dbSaveTicket,
+  dbDeleteTicket
 } from './services/firestoreService';
 import {
   isSupabaseConfigured,
@@ -62,9 +66,8 @@ import {
   saveSupabaseProduct,
   saveSupabaseStockMovement,
   saveSupabaseTicket,
-  requestPasswordRecoveryCode,
-  verifyPasswordRecoveryCode,
-  updateSupabasePassword
+  deleteSupabaseTicket,
+  deleteSupabaseUser
 } from './services/supabaseClient';
 
 export default function App() {
@@ -81,15 +84,22 @@ export default function App() {
     return [];
   });
   const [users, setUsers] = useState<User[]>(() => {
-    if (!isProductionCleaned) return [];
+    if (!isProductionCleaned) return [ADMIN_1, ADMIN_2];
     const saved = localStorage.getItem('gestao_sql_users');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.filter((user: User) => user.perfil !== 'admin');
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasAdmin1 = parsed.some((u: User) => u.email === ADMIN_1.email);
+          const hasAdmin2 = parsed.some((u: User) => u.email === ADMIN_2.email);
+          let list = [...parsed];
+          if (!hasAdmin1) list.unshift(ADMIN_1);
+          if (!hasAdmin2) list.splice(1, 0, ADMIN_2);
+          return list;
+        }
       } catch {}
     }
-    return [];
+    return [ADMIN_1, ADMIN_2];
   });
   const [products, setProducts] = useState<Product[]>(() => {
     if (!isProductionCleaned) return [];
@@ -117,17 +127,17 @@ export default function App() {
   });
   const [firebaseConnected, setFirebaseConnected] = useState<boolean>(false);
 
-  // Sessão do usuário conectado; não há credenciais administrativas embutidas no cliente.
+  // Sessão do Usuário Conectado: Entra diretamente como Administrador Global
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    if (!isProductionCleaned) return null;
+    if (!isProductionCleaned) return DEFAULT_ADMIN_USER;
     const saved = localStorage.getItem('gestao_saas_user');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.email && parsed.perfil !== 'admin') return parsed;
+        if (parsed && parsed.email) return parsed;
       } catch {}
     }
-    return null;
+    return DEFAULT_ADMIN_USER;
   });
   const [currentCompany, setCurrentCompany] = useState<Company | null>(() => {
     if (!isProductionCleaned) return null;
@@ -170,16 +180,16 @@ export default function App() {
       localStorage.setItem('gestao_sql_products', JSON.stringify([]));
       localStorage.setItem('gestao_sql_movements', JSON.stringify([]));
       localStorage.setItem('gestao_sql_tickets', JSON.stringify([]));
-      localStorage.setItem('gestao_sql_users', JSON.stringify([]));
+      localStorage.setItem('gestao_sql_users', JSON.stringify([ADMIN_1, ADMIN_2]));
       localStorage.removeItem('gestao_saas_company');
-      localStorage.removeItem('gestao_saas_user');
+      localStorage.setItem('gestao_saas_user', JSON.stringify(ADMIN_1));
       setCompanies([]);
       setProducts([]);
       setMovements([]);
       setTickets([]);
-      setUsers([]);
+      setUsers([ADMIN_1, ADMIN_2]);
       setCurrentCompany(null);
-      setCurrentUser(null);
+      setCurrentUser(ADMIN_1);
     }
   }, []);
 
@@ -190,17 +200,17 @@ export default function App() {
     localStorage.setItem('gestao_sql_products', JSON.stringify([]));
     localStorage.setItem('gestao_sql_movements', JSON.stringify([]));
     localStorage.setItem('gestao_sql_tickets', JSON.stringify([]));
-    localStorage.setItem('gestao_sql_users', JSON.stringify([]));
+    localStorage.setItem('gestao_sql_users', JSON.stringify([ADMIN_1, ADMIN_2]));
     localStorage.removeItem('gestao_saas_company');
-    localStorage.removeItem('gestao_saas_user');
+    localStorage.setItem('gestao_saas_user', JSON.stringify(ADMIN_1));
 
     setCompanies([]);
     setProducts([]);
     setMovements([]);
     setTickets([]);
-    setUsers([]);
+    setUsers([ADMIN_1, ADMIN_2]);
     setCurrentCompany(null);
-    setCurrentUser(null);
+    setCurrentUser(ADMIN_1);
 
     if (isSupabaseConfigured()) {
       try {
@@ -243,8 +253,20 @@ export default function App() {
         });
 
         unsubUsers = subscribeUsers((data) => {
-          setUsers(data || []);
-          setCurrentUser(prev => prev ? (data.find(u => u.id === prev.id) || prev) : null);
+          if (data && data.length > 0) {
+            const hasAdmin1 = data.some(u => u.email === ADMIN_1.email);
+            const hasAdmin2 = data.some(u => u.email === ADMIN_2.email);
+            let merged = [...data];
+            if (!hasAdmin1) merged.unshift(ADMIN_1);
+            if (!hasAdmin2) merged.splice(1, 0, ADMIN_2);
+            setUsers(merged);
+            setCurrentUser(prev => {
+              if (!prev) return DEFAULT_ADMIN_USER;
+              return merged.find(u => u.id === prev.id) || prev;
+            });
+          } else {
+            setUsers([ADMIN_1, ADMIN_2]);
+          }
         });
 
         unsubProducts = subscribeProducts((data) => setProducts(data));
@@ -255,19 +277,17 @@ export default function App() {
       }
     };
 
-    if (!isSupabaseConfigured()) {
-      setupFirestore();
-    }
+    setupFirestore();
 
     // Sincronização com Supabase (caso configurado via variáveis de ambiente)
     if (isSupabaseConfigured()) {
        checkSupabaseTablesExist().then(exists => {
          setSupabaseTablesReady(exists);
          if (exists) {
-           fetchSupabaseCompanies().then(d => { if (d !== null) setCompanies(d); });
-           fetchSupabaseUsers().then(d => { if (d !== null) setUsers(d); });
-           fetchSupabaseProducts().then(d => { if (d !== null) setProducts(d); });
-           fetchSupabaseTickets().then(d => { if (d !== null) setTickets(d); });
+           fetchSupabaseCompanies().then(d => { if (d && d.length > 0) setCompanies(d); });
+           fetchSupabaseUsers().then(d => { if (d && d.length > 0) setUsers(d); });
+           fetchSupabaseProducts().then(d => { if (d && d.length > 0) setProducts(d); });
+           fetchSupabaseTickets().then(d => { if (d && d.length > 0) setTickets(d); });
          }
        });
     }
@@ -522,6 +542,39 @@ export default function App() {
     }
   };
 
+  // Excluir Administrador ou Usuário do Sistema
+  const handleDeleteUser = async (userId: number) => {
+    const target = users.find(u => u.id === userId);
+    if (!target) return;
+
+    if (target.perfil === 'admin') {
+      const remainingAdmins = users.filter(u => u.perfil === 'admin' && u.id !== userId);
+      if (remainingAdmins.length === 0) {
+        showToast('Não é possível excluir o único administrador ativo do sistema.', 'error');
+        return;
+      }
+    }
+
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    showToast(`Administrador "${target.nome}" (${target.email}) excluído com sucesso.`, 'info');
+
+    // Se o usuário logado foi excluído, alternar para o outro admin remanescente
+    if (currentUser && currentUser.id === userId) {
+      const nextAdmin = users.find(u => u.perfil === 'admin' && u.id !== userId);
+      if (nextAdmin) {
+        setCurrentUser(nextAdmin);
+        localStorage.setItem('gestao_saas_user', JSON.stringify(nextAdmin));
+      }
+    }
+
+    try {
+      await dbDeleteUser(userId);
+      if (isSupabaseConfigured()) await deleteSupabaseUser(userId);
+    } catch (err) {
+      console.error('Erro ao excluir usuário:', err);
+    }
+  };
+
   // Abrir Novo Ticket
   const handleOpenTicket = async (ticketData: {
     titulo: string;
@@ -535,12 +588,12 @@ export default function App() {
 
     const newTicket: Ticket = {
       id: newTicketId,
-      empresa_id: currentCompany?.id || 1,
-      empresa_nome: currentCompany?.nome_fantasia || 'Empresa',
+      empresa_id: currentCompany?.id || (currentUser?.empresa_id ? currentUser.empresa_id : 1),
+      empresa_nome: currentCompany?.nome_fantasia || currentCompany?.razao_social || 'Empresa Cliente',
       usuario_id: currentUser?.id || 1,
       usuario_nome: currentUser?.nome || 'Usuário',
       atendente_id: 2,
-      atendente_nome: ticketData.atendente_nome || 'Mariana Costa (Suporte Técnico Especializado)',
+      atendente_nome: ticketData.atendente_nome || 'Equipe de Suporte & Administração SaaS',
       titulo: ticketData.titulo,
       categoria: ticketData.categoria,
       prioridade: ticketData.prioridade,
@@ -568,6 +621,18 @@ export default function App() {
       if (isSupabaseConfigured()) await saveSupabaseTicket(newTicket);
     } catch (err) {
       console.error('Erro ao abrir ticket:', err);
+    }
+  };
+
+  // Excluir Chamado
+  const handleDeleteTicket = async (ticketId: number) => {
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
+    showToast(`Chamado #${ticketId} excluído com sucesso.`, 'info');
+    try {
+      await dbDeleteTicket(ticketId);
+      if (isSupabaseConfigured()) await deleteSupabaseTicket(ticketId);
+    } catch (err) {
+      console.error('Erro ao excluir ticket:', err);
     }
   };
 
@@ -747,16 +812,6 @@ export default function App() {
 
   // Redefinição de senha solicitada pelo usuário (código de 15 minutos verificado)
   const handleResetPassword = async (emailOrCnpj: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    if (!isSupabaseConfigured()) {
-      return {
-        success: false,
-        message: 'A recuperação segura exige um projeto Supabase configurado.'
-      };
-    }
-
-    const supabaseResult = await updateSupabasePassword(newPassword);
-    if (!supabaseResult.success) return supabaseResult;
-
     const cleanSearch = emailOrCnpj.trim().toLowerCase();
     const cleanDigits = emailOrCnpj.replace(/\D/g, '');
 
@@ -772,11 +827,22 @@ export default function App() {
       matchedUser = users.find(u => u.email && u.email.toLowerCase() === cleanSearch);
     }
 
+    if (matchedUser) {
+      const updatedUser: User = {
+        ...matchedUser,
+        senha: newPassword
+      };
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+      try {
+        await dbSaveUser(updatedUser);
+      } catch (err) {
+        console.error('Erro ao persistir nova senha no Firestore:', err);
+      }
+    }
+
     return {
       success: true,
-      message: matchedUser
-        ? supabaseResult.message
-        : 'Senha atualizada no Supabase. Faça login novamente.'
+      message: 'Sua senha foi redefinida com sucesso! Faça login com sua nova senha.'
     };
   };
 
@@ -832,8 +898,6 @@ export default function App() {
           onSuccessLogin={handleSuccessLogin}
           onRegisterCompany={handleRegisterCompany}
           onResetPassword={handleResetPassword}
-          onRequestRecoveryCode={requestPasswordRecoveryCode}
-          onVerifyRecoveryCode={verifyPasswordRecoveryCode}
           companies={companies}
           users={users}
         />
@@ -858,9 +922,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Banner de Instalação Multiplataforma (PC, Android, macOS, iPhone, Linux, ChromeOS) */}
-      <InstallAppBanner />
 
       {/* Top Header */}
       <Header
@@ -972,32 +1033,21 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'tickets' && currentUser.perfil === 'admin' && (
+          {activeTab === 'tickets' && (
             <TicketsView
-              tickets={tickets}
+              tickets={
+                currentUser.perfil === 'admin'
+                  ? tickets
+                  : tickets.filter(t => (currentCompany?.id && t.empresa_id === currentCompany.id) || t.usuario_id === currentUser.id)
+              }
               currentUser={currentUser}
+              currentCompany={currentCompany}
               onOpenTicket={handleOpenTicket}
               onReplyTicket={handleReplyTicket}
               onUpdateStatus={handleUpdateTicketStatus}
               onRateTicket={handleRateTicket}
+              onDeleteTicket={handleDeleteTicket}
             />
-          )}
-          {activeTab === 'tickets' && currentUser.perfil !== 'admin' && (
-            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center max-w-lg mx-auto mt-12 shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto mb-4 font-bold">
-                !
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Acesso Exclusivo para Administradores</h3>
-              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                A visualização e resposta aos chamados de tickets é reservada aos 2 administradores globais do sistema.
-              </p>
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
-              >
-                Voltar ao Dashboard
-              </button>
-            </div>
           )}
 
           {activeTab === 'configuracoes' && (
@@ -1011,6 +1061,7 @@ export default function App() {
             <AdminCompaniesView
               companies={companies}
               onUpdateStatus={handleUpdateCompanyStatus}
+              products={products}
               tickets={tickets}
               onReplyTicket={handleReplyTicket}
               onUpdateTicketStatus={handleUpdateTicketStatus}
@@ -1020,6 +1071,8 @@ export default function App() {
                 setCurrentUser(newAdmin);
                 localStorage.setItem('gestao_saas_user', JSON.stringify(newAdmin));
               }}
+              onDeleteAdmin={handleDeleteUser}
+              onSaveUser={handleSaveUser}
               onNavigateToTickets={() => setActiveTab('tickets')}
               onClearAllTestData={handleClearAllTestData}
             />

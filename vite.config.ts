@@ -6,9 +6,6 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    // O Electron carrega o build por file://; caminhos relativos evitam tela
-    // branca no instalador desktop sem prejudicar o uso web/PWA.
-    base: './',
     plugins: [
       react(), 
       tailwindcss(),

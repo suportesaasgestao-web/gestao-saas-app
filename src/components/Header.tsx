@@ -104,9 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center flex-wrap gap-2 w-full md:w-auto justify-end">
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold ${badge.color} shadow-xs`}>
             <ShieldCheck className="w-4 h-4 text-current" />
-            <span>
-              Perfil: <strong>{currentUser.tag || (currentUser.perfil === 'admin' ? 'ADMIN' : badge.label)}</strong>
-            </span>
+            <span>Perfil: <strong>{badge.label}</strong></span>
             <span className="opacity-75 hidden sm:inline">• {currentUser.nome.split(' ')[0]}</span>
           </div>
 

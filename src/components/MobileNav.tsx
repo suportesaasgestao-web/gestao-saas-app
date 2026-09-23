@@ -66,7 +66,7 @@ export const MobileDrawer: React.FC<MobileNavProps> = ({
       id: 'produtos' as ActiveTab,
       label: 'Cadastro de Produtos',
       icon: Package,
-      roles: ['admin', 'dono', 'gerente', 'funcionario'],
+      roles: ['dono', 'gerente', 'funcionario'],
       badge: lowStockCount > 0 ? `${lowStockCount} alertas` : null,
       badgeColor: 'bg-red-100 text-red-700'
     },
@@ -74,21 +74,21 @@ export const MobileDrawer: React.FC<MobileNavProps> = ({
       id: 'estoque' as ActiveTab,
       label: 'Controle de Estoque',
       icon: ArrowLeftRight,
-      roles: ['admin', 'dono', 'gerente', 'funcionario'],
+      roles: ['dono', 'gerente', 'funcionario'],
       badge: null
     },
     {
       id: 'funcionarios' as ActiveTab,
       label: 'Equipe & Funcionários',
       icon: Users2,
-      roles: ['admin', 'dono', 'gerente'],
+      roles: ['dono', 'gerente'],
       badge: null
     },
     {
       id: 'tickets' as ActiveTab,
       label: 'Chamados de Suporte',
       icon: LifeBuoy,
-      roles: ['admin'],
+      roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: openTicketsCount > 0 ? `${openTicketsCount} abertos` : null,
       badgeColor: 'bg-blue-100 text-blue-700'
     },
@@ -237,6 +237,8 @@ export const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
   lowStockCount = 0,
   openTicketsCount = 0
 }) => {
+  const isAdmin = currentRole === 'admin';
+
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-2 py-1.5 shadow-lg flex items-center justify-around">
       <button
@@ -249,52 +251,79 @@ export const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
         <span>Início</span>
       </button>
 
-      <button
-        onClick={() => onSelectTab('produtos')}
-        className={`relative flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
-          activeTab === 'produtos' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
-        }`}
-      >
-        <Package className={`w-5 h-5 ${activeTab === 'produtos' ? 'text-blue-600' : 'text-slate-500'}`} />
-        <span>Produtos</span>
-        {lowStockCount > 0 && (
-          <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-rose-500"></span>
-        )}
-      </button>
+      {isAdmin ? (
+        <>
+          <button
+            onClick={() => onSelectTab('admin-empresas')}
+            className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
+              activeTab === 'admin-empresas' ? 'text-purple-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Building2 className={`w-5 h-5 ${activeTab === 'admin-empresas' ? 'text-purple-600' : 'text-slate-500'}`} />
+            <span>Admin</span>
+          </button>
 
-      <button
-        onClick={() => onSelectTab('estoque')}
-        className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
-          activeTab === 'estoque' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
-        }`}
-      >
-        <ArrowLeftRight className={`w-5 h-5 ${activeTab === 'estoque' ? 'text-blue-600' : 'text-slate-500'}`} />
-        <span>Estoque</span>
-      </button>
+          <button
+            onClick={() => onSelectTab('tickets')}
+            className={`relative flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
+              activeTab === 'tickets' ? 'text-purple-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <LifeBuoy className={`w-5 h-5 ${activeTab === 'tickets' ? 'text-purple-600' : 'text-slate-500'}`} />
+            <span>Tickets</span>
+            {openTicketsCount > 0 && (
+              <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+            )}
+          </button>
 
-      {(currentRole === 'dono' || currentRole === 'admin' || currentRole === 'gerente') ? (
-        <button
-          onClick={() => onSelectTab('funcionarios')}
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
-            activeTab === 'funcionarios' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <Users2 className={`w-5 h-5 ${activeTab === 'funcionarios' ? 'text-blue-600' : 'text-slate-500'}`} />
-          <span>Equipe</span>
-        </button>
+          <button
+            onClick={() => onSelectTab('codigo')}
+            className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
+              activeTab === 'codigo' ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <FileCode2 className={`w-5 h-5 ${activeTab === 'codigo' ? 'text-indigo-600' : 'text-slate-500'}`} />
+            <span>PHP/BD</span>
+          </button>
+        </>
       ) : (
-        <button
-          onClick={() => onSelectTab('tickets')}
-          className={`relative flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
-            activeTab === 'tickets' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <LifeBuoy className={`w-5 h-5 ${activeTab === 'tickets' ? 'text-blue-600' : 'text-slate-500'}`} />
-          <span>Tickets</span>
-          {openTicketsCount > 0 && (
-            <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-blue-500"></span>
-          )}
-        </button>
+        <>
+          <button
+            onClick={() => onSelectTab('produtos')}
+            className={`relative flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
+              activeTab === 'produtos' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Package className={`w-5 h-5 ${activeTab === 'produtos' ? 'text-blue-600' : 'text-slate-500'}`} />
+            <span>Produtos</span>
+            {lowStockCount > 0 && (
+              <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-rose-500"></span>
+            )}
+          </button>
+
+          <button
+            onClick={() => onSelectTab('estoque')}
+            className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
+              activeTab === 'estoque' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <ArrowLeftRight className={`w-5 h-5 ${activeTab === 'estoque' ? 'text-blue-600' : 'text-slate-500'}`} />
+            <span>Estoque</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('tickets')}
+            className={`relative flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors text-[10px] font-medium ${
+              activeTab === 'tickets' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <LifeBuoy className={`w-5 h-5 ${activeTab === 'tickets' ? 'text-blue-600' : 'text-slate-500'}`} />
+            <span>Tickets</span>
+            {openTicketsCount > 0 && (
+              <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-blue-500"></span>
+            )}
+          </button>
+        </>
       )}
 
       <button

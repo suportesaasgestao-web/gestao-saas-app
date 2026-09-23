@@ -30,61 +30,6 @@ export const getSupabase = (): SupabaseClient | null => {
   return client;
 };
 
-export async function requestPasswordRecoveryCode(email: string): Promise<{ success: boolean; message: string }> {
-  const sb = getSupabase();
-  if (!sb) {
-    return { success: false, message: 'A recuperação de senha está indisponível até o Supabase ser configurado.' };
-  }
-
-  const { error } = await sb.auth.signInWithOtp({
-    email: email.trim().toLowerCase(),
-    options: { shouldCreateUser: false }
-  });
-
-  if (error) {
-    console.warn('[Supabase Aviso] Não foi possível enviar o código de recuperação:', error.message);
-    return { success: false, message: 'Não foi possível enviar o código. Confirme o e-mail e tente novamente.' };
-  }
-
-  return {
-    success: true,
-    message: 'Código enviado para o e-mail informado. Verifique sua caixa de entrada e o spam.'
-  };
-}
-
-export async function verifyPasswordRecoveryCode(email: string, token: string): Promise<{ success: boolean; message: string }> {
-  const sb = getSupabase();
-  if (!sb) {
-    return { success: false, message: 'A recuperação de senha está indisponível até o Supabase ser configurado.' };
-  }
-
-  const { error } = await sb.auth.verifyOtp({
-    email: email.trim().toLowerCase(),
-    token: token.trim(),
-    type: 'email'
-  });
-
-  if (error) {
-    return { success: false, message: 'Código inválido ou expirado. Solicite um novo código.' };
-  }
-
-  return { success: true, message: 'Código validado. Defina sua nova senha.' };
-}
-
-export async function updateSupabasePassword(newPassword: string): Promise<{ success: boolean; message: string }> {
-  const sb = getSupabase();
-  if (!sb) {
-    return { success: false, message: 'A recuperação de senha está indisponível até o Supabase ser configurado.' };
-  }
-
-  const { error } = await sb.auth.updateUser({ password: newPassword });
-  if (error) {
-    return { success: false, message: 'Não foi possível atualizar a senha no Supabase. Tente novamente.' };
-  }
-
-  return { success: true, message: 'Sua senha foi atualizada com sucesso no Supabase. Faça login novamente.' };
-}
-
 // ==========================================
 // FUNÇÕES DE SINCRONIZAÇÃO COM SUPABASE
 // ==========================================
@@ -219,4 +164,26 @@ export async function saveSupabaseTicket(ticket: Partial<Ticket>): Promise<Ticke
     return null;
   }
   return data as Ticket;
+}
+
+export async function deleteSupabaseTicket(ticketId: number): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  const { error } = await sb.from('tickets').delete().eq('id', ticketId);
+  if (error) {
+    handleSupabaseError('excluir ticket', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteSupabaseUser(userId: number): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  const { error } = await sb.from('usuarios').delete().eq('id', userId);
+  if (error) {
+    handleSupabaseError('excluir usuario', error);
+    return false;
+  }
+  return true;
 }

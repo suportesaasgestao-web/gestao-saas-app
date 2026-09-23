@@ -9,17 +9,27 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Company, User, Product, StockMovement, Ticket, CompanyStatus } from '../types';
-import {
-  MOCK_COMPANIES,
+import { 
+  ADMIN_1, 
+  ADMIN_2,
+  DEFAULT_ADMIN_USER,
+  MOCK_COMPANIES, 
   MOCK_USERS, 
   MOCK_PRODUCTS, 
   MOCK_MOVEMENTS, 
   MOCK_TICKETS 
 } from '../mockData';
 
-// A criação de administradores deve ocorrer no backend/provedor de identidade.
+// Inicializar Firestore (garantindo os 2 usuários administradores globais)
 export async function initializeFirestoreDatabase(): Promise<void> {
-  return Promise.resolve();
+  try {
+    const admin1DocRef = doc(db, 'users', '1');
+    const admin2DocRef = doc(db, 'users', '2');
+    await setDoc(admin1DocRef, ADMIN_1, { merge: true });
+    await setDoc(admin2DocRef, ADMIN_2, { merge: true });
+  } catch (err) {
+    console.warn('Inicialização dos usuários admin no Firestore:', err);
+  }
 }
 
 // Listeners em tempo real
@@ -111,6 +121,10 @@ export async function dbSaveUser(user: User): Promise<void> {
   await setDoc(doc(db, 'users', String(user.id)), user, { merge: true });
 }
 
+export async function dbDeleteUser(userId: number): Promise<void> {
+  await deleteDoc(doc(db, 'users', String(userId)));
+}
+
 export async function dbUpdateCompany(company: Company): Promise<void> {
   await setDoc(doc(db, 'companies', String(company.id)), company, { merge: true });
 }
@@ -124,4 +138,8 @@ export async function dbUpdateCompanyStatus(companyId: number, status: CompanySt
 
 export async function dbSaveTicket(ticket: Ticket): Promise<void> {
   await setDoc(doc(db, 'tickets', String(ticket.id)), ticket, { merge: true });
+}
+
+export async function dbDeleteTicket(ticketId: number): Promise<void> {
+  await deleteDoc(doc(db, 'tickets', String(ticketId)));
 }

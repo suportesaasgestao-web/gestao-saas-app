@@ -69,11 +69,11 @@ php -S localhost:8000
 ```
 Abra o navegador em `http://localhost:8000`.
 
-## 👤 Administradores
-
-Não existem credenciais padrão neste repositório. Crie os administradores
-diretamente no provedor de identidade/ambiente seguro da implantação e nunca
-publique senhas no código, no README ou na interface para clientes.
+## 👤 Credenciais Padrão de Demonstração
+- **Super Administrador (SaaS Global):**
+  - E-mail: `admin@saas.com.br`
+  - Senha: `Admin@123`
+  - *Função:* Aprovar empresas pendentes, monitorar tenants.
 
 - **Dono de Empresa (Tenant):**
   - Cadastre sua empresa na aba "Cadastrar Empresa" da tela de login.

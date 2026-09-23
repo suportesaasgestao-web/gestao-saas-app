@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'produtos' as ActiveTab,
       label: 'Cadastro de Produtos',
       icon: Package,
-      roles: ['admin', 'dono', 'gerente', 'funcionario'],
+      roles: ['dono', 'gerente', 'funcionario'],
       badge: lowStockCount > 0 ? `${lowStockCount} alertas` : null,
       badgeColor: 'bg-red-100 text-red-700'
     },
@@ -67,21 +67,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'estoque' as ActiveTab,
       label: 'Controle de Estoque',
       icon: ArrowLeftRight,
-      roles: ['admin', 'dono', 'gerente', 'funcionario'],
+      roles: ['dono', 'gerente', 'funcionario'],
       badge: null
     },
     {
       id: 'funcionarios' as ActiveTab,
       label: 'Equipe & Funcionários',
       icon: Users2,
-      roles: ['admin', 'dono', 'gerente'],
+      roles: ['dono', 'gerente'],
       badge: null
     },
     {
       id: 'tickets' as ActiveTab,
       label: 'Chamados de Suporte',
       icon: LifeBuoy,
-      roles: ['admin'],
+      roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: openTicketsCount > 0 ? `${openTicketsCount} abertos` : null,
       badgeColor: 'bg-blue-100 text-blue-700'
     },

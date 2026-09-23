@@ -55,8 +55,8 @@ export const PhpBackendViewer: React.FC = () => {
 3. Acesse 'index.php' no seu navegador ou inicie o servidor interno do PHP:
    \`php -S localhost:8000\`
 4. Credenciais padrão de demonstração:
-   - Administradores devem ser provisionados apenas no ambiente seguro da implantação.
-   - Cadastre o primeiro proprietário da empresa durante a implantação.
+   - Admin Global: admin@saas.com.br / Admin@123
+   - Dono da Empresa: dono@empresa.com.br / Dono@123
 `);
 
       const blob = await zip.generateAsync({ type: 'blob' });

@@ -301,6 +301,11 @@ CREATE TABLE IF NOT EXISTS configuracoes (
     UNIQUE KEY uq_empresa_chave (empresa_id, chave)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- INSERÇÃO DO ADMINISTRADOR PADRÃO DO SISTEMA
+-- Senha padrão provisória: Admin@123 (hash BCRYPT gerado com cost 12)
+INSERT INTO usuarios (empresa_id, nome, email, senha, perfil, cargo, ativo)
+VALUES (NULL, 'Super Administrador SaaS', 'admin@saas.com.br', '$2y$12$e0M2/RkR9s3yG0cZbK0cReU2Y/o0bK0cReU2Y/o0bK0cReU2Y/o0b', 'admin', 'Administrador Global', 1)
+ON DUPLICATE KEY UPDATE id=id;
 `
   },
   {
@@ -1711,7 +1716,8 @@ exit;
             
             <div class="auth-help-box">
                 <strong>Credenciais de Demonstração:</strong><br>
-                <span>Administradores são provisionados apenas no ambiente seguro da implantação.</span>
+                <span>Admin SaaS:</span> admin@saas.com.br | Admin@123<br>
+                <span>Dono Empresa:</span> dono@empresa.com.br ou CNPJ | Dono@123
             </div>
         </form>
 

@@ -42,6 +42,8 @@
             
             <div class="auth-help-box">
                 <strong>Credenciais de Demonstração:</strong><br>
+                <span>Admin SaaS:</span> admin@saas.com.br | Admin@123<br>
+                <span>Dono Empresa:</span> dono@empresa.com.br ou CNPJ | Dono@123
             </div>
         </form>
 
