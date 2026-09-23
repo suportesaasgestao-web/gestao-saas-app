@@ -97,11 +97,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Rename APK for download
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/GestaoSaaS-Android.apk
+
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: gestao-saas-android
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/GestaoSaaS-Android.apk
           if-no-files-found: error
 
   release:
@@ -119,4 +122,4 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" artifacts/* --repo "${GITHUB_REPOSITORY}" --generate-notes
+        run: gh release create "${GITHUB_REF_NAME}" artifacts/* --repo "${GITHUB_REPOSITORY}" --title "GestãoSaaS ${GITHUB_REF_NAME}" --generate-notes
