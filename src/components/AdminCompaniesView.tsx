@@ -20,13 +20,7 @@ import {
   Tag,
   AlertCircle,
   ExternalLink,
-  ChevronRight,
   Trash2,
-  Download,
-  Smartphone,
-  Monitor,
-  Apple,
-  Laptop,
   RefreshCw
 } from 'lucide-react';
 
@@ -352,16 +346,6 @@ export const AdminCompaniesView: React.FC<AdminCompaniesViewProps> = ({
                 <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
                   Não há chamados pendentes para os critérios selecionados. Quando clientes ou usuários abrirem solicitações de suporte, elas aparecerão aqui diretamente para os 2 admins.
                 </p>
-                {onNavigateToTickets && (
-                  <button
-                    type="button"
-                    onClick={onNavigateToTickets}
-                    className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg inline-flex items-center gap-1.5 shadow-xs"
-                  >
-                    <span>Abrir Novo Ticket de Teste</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                )}
               </div>
             ) : (
               filteredTickets.map(tkt => {
@@ -792,56 +776,6 @@ export const AdminCompaniesView: React.FC<AdminCompaniesViewProps> = ({
             })}
           </div>
 
-          {/* Seção de Lançamento Multiplataforma (PC, Android, macOS, iPhone, Linux, ChromeOS) */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-blue-600" />
-                  Pronto para Lançamento Multiplataforma (PWA Nativo)
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  O sistema está 100% configurado com Progressive Web App (PWA) e Web Manifest para instalação instantânea em todas as plataformas:
-                </p>
-              </div>
-              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold rounded-full border border-emerald-200">
-                PWA Ativo
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                <Monitor className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-xs">PC / Windows</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">Instalável</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                <Smartphone className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-xs">Android</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">WebAPK Nativo</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                <Apple className="w-5 h-5 text-slate-800 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-xs">macOS</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">Dock / Desktop</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                <Smartphone className="w-5 h-5 text-slate-700 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-xs">iPhone (iOS)</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">Tela de Início</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                <Laptop className="w-5 h-5 text-orange-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-xs">Linux</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">Standalone</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                <Monitor className="w-5 h-5 text-amber-600 mx-auto mb-1" />
-                <div className="font-bold text-slate-800 text-xs">ChromeOS</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">App Launcher</span>
-              </div>
-            </div>
-          </div>
 
           {/* Seção de Limpeza de Produção (Zerar tudo menos os 2 Admins) */}
           <div className="bg-red-50/50 border border-red-200 rounded-xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
