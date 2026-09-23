@@ -3,7 +3,9 @@ import { User, Company, UserRole } from '../types';
 import { 
   Building2, 
   ShieldCheck, 
+  Code2, 
   LogOut, 
+  Users, 
   Sparkles,
   CheckCircle2,
   AlertCircle,
@@ -13,8 +15,8 @@ import {
 interface HeaderProps {
   currentUser: User;
   currentCompany: Company | null;
-  onSwitchUser?: (role: UserRole) => void;
-  onOpenCodeExplorer?: () => void;
+  onSwitchUser: (role: UserRole) => void;
+  onOpenCodeExplorer: () => void;
   onLogout: () => void;
   onOpenMobileMenu?: () => void;
 }
@@ -22,6 +24,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
   currentCompany,
+  onSwitchUser,
+  onOpenCodeExplorer,
   onLogout,
   onOpenMobileMenu
 }) => {
@@ -100,13 +104,63 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: User Profile Badge + Logout */}
+        {/* Right: Quick Role Switcher + Code Explorer + Logout */}
         <div className="flex items-center flex-wrap gap-2 w-full md:w-auto justify-end">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold ${badge.color} shadow-xs`}>
-            <ShieldCheck className="w-4 h-4 text-current" />
-            <span>Perfil: <strong>{badge.label}</strong></span>
-            <span className="opacity-75 hidden sm:inline">• {currentUser.nome.split(' ')[0]}</span>
-          </div>
+          {/* Se for Admin Global do SaaS, permite simular e inspecionar a visão de outros perfis */}
+          {currentUser.perfil === 'admin' ? (
+            <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+              <span className="text-[11px] font-semibold text-slate-500 px-2 flex items-center gap-1">
+                <Users className="w-3.5 h-3.5" /> Simular Visão:
+              </span>
+              <button
+                onClick={() => onSwitchUser('admin')}
+                className="px-2.5 py-1 rounded-md font-medium bg-purple-600 text-white shadow-xs"
+                title="Visão Master do Administrador"
+              >
+                Admin
+              </button>
+              <button
+                onClick={() => onSwitchUser('dono')}
+                className="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-all"
+                title="Simular visão de Dono"
+              >
+                Dono
+              </button>
+              <button
+                onClick={() => onSwitchUser('gerente')}
+                className="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-all"
+                title="Simular visão de Gerente"
+              >
+                Gerente
+              </button>
+              <button
+                onClick={() => onSwitchUser('funcionario')}
+                className="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-all"
+                title="Simular visão de Funcionário"
+              >
+                Operador
+              </button>
+            </div>
+          ) : (
+            /* Quando o usuário for Dono (ou Gerente/Funcionário), APENAS mostra o perfil dele! */
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold ${badge.color} shadow-xs`}>
+              <ShieldCheck className="w-4 h-4 text-current" />
+              <span>Perfil: <strong>{badge.label}</strong></span>
+              <span className="opacity-75 hidden sm:inline">• {currentUser.nome.split(' ')[0]}</span>
+            </div>
+          )}
+
+          {/* Code Explorer Button (Visível apenas para Administrador/Dev do Sistema) */}
+          {currentUser.perfil === 'admin' && (
+            <button
+              onClick={onOpenCodeExplorer}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold text-xs transition-colors shadow-xs"
+              title="Acesso Técnico: Ver código-fonte PHP e exportar ZIP"
+            >
+              <Code2 className="w-4 h-4" />
+              <span>Código PHP & MySQL (Admin)</span>
+            </button>
+          )}
 
           {/* Logout Button */}
           <button

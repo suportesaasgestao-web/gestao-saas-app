@@ -1,6 +1,6 @@
 {
   "name": "GestãoSaaS - Sistema de Gestão Empresarial",
-  "description": "Sistema SaaS multiplataforma de gestão empresarial para PC, Android, macOS, iOS (iPhone), Linux e ChromeOS, com controle de estoque, chamados de suporte para administradores e multi-empresas.",
+  "description": "Sistema SaaS completo para gestão empresarial com persistência em tempo real no Firebase Firestore, controle de estoque, múltiplos perfis e aprovação de empresas.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

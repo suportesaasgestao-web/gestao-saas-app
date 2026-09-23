@@ -69,13 +69,8 @@ php -S localhost:8000
 ```
 Abra o navegador em `http://localhost:8000`.
 
-## 👤 Credenciais Padrão de Demonstração
-- **Super Administrador (SaaS Global):**
-  - E-mail: `admin@saas.com.br`
-  - Senha: `Admin@123`
-  - *Função:* Aprovar empresas pendentes, monitorar tenants.
+## 👤 Primeiro acesso
 
-- **Dono de Empresa (Tenant):**
-  - Cadastre sua empresa na aba "Cadastrar Empresa" da tela de login.
-  - Faça login como admin e aprove a empresa cadastrada.
-  - Acesse com o e-mail ou CNPJ cadastrado.
+Cadastre uma empresa pela tela de login e configure o primeiro usuário
+administrador diretamente no ambiente da implantação. Não existem credenciais
+padrão neste repositório.

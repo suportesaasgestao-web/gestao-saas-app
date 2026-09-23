@@ -17,11 +17,15 @@ import {
 interface SettingsViewProps {
   currentCompany: Company | null;
   onSaveSettings: (updated: Partial<Company>) => void;
+  language: 'pt-BR' | 'en' | 'es';
+  onLanguageChange: (language: 'pt-BR' | 'en' | 'es') => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   currentCompany,
-  onSaveSettings
+  onSaveSettings,
+  language,
+  onLanguageChange
 }) => {
   const [nomeFantasia, setNomeFantasia] = useState(currentCompany?.nome_fantasia || '');
   const [razaoSocial, setRazaoSocial] = useState(currentCompany?.razao_social || '');
@@ -70,6 +74,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-2 mb-3">
+          <Settings className="w-5 h-5 text-blue-600" />
+          <h3 className="text-sm font-bold text-slate-900">Preferências do sistema</h3>
+        </div>
+        <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="language">
+          Idioma do aplicativo
+        </label>
+        <select
+          id="language"
+          value={language}
+          onChange={(event) => onLanguageChange(event.target.value as 'pt-BR' | 'en' | 'es')}
+          className="w-full max-w-xs text-xs p-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+        >
+          <option value="pt-BR">Português (Brasil)</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+        <p className="text-[11px] text-slate-500 mt-2">A preferência fica salva neste computador.</p>
+      </div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
         <div>

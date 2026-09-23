@@ -29,6 +29,7 @@ interface SidebarProps {
   pendingCount?: number;
   lowStockCount?: number;
   openTicketsCount?: number;
+  language?: 'pt-BR' | 'en' | 'es';
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -37,49 +38,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   pendingCount = 0,
   lowStockCount = 0,
-  openTicketsCount = 0
+  openTicketsCount = 0,
+  language = 'pt-BR'
 }) => {
+  const labels = {
+    'pt-BR': { nav: 'Navegação do Sistema', dashboard: 'Dashboard Geral', companies: 'Aprovação de Empresas', products: 'Cadastro de Produtos', stock: 'Controle de Estoque', team: 'Equipe & Funcionários', tickets: 'Central de Tickets', settings: 'Dados da Empresa & Logo', code: 'Código PHP & MySQL' },
+    en: { nav: 'System Navigation', dashboard: 'General Dashboard', companies: 'Company Approval', products: 'Product Catalog', stock: 'Inventory Control', team: 'Team & Employees', tickets: 'Support Center', settings: 'Company Data & Logo', code: 'PHP & MySQL Code' },
+    es: { nav: 'Navegación del Sistema', dashboard: 'Panel General', companies: 'Aprobación de Empresas', products: 'Registro de Productos', stock: 'Control de Inventario', team: 'Equipo y Empleados', tickets: 'Centro de Soporte', settings: 'Datos de Empresa y Logo', code: 'Código PHP y MySQL' }
+  }[language];
   const navItems = [
     {
       id: 'dashboard' as ActiveTab,
-      label: 'Dashboard Geral',
+      label: labels.dashboard,
       icon: LayoutDashboard,
       roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: null
     },
     {
       id: 'admin-empresas' as ActiveTab,
-      label: 'Painel de Admin',
+      label: labels.companies,
       icon: Building2,
       roles: ['admin'],
-      badge: (pendingCount + openTicketsCount) > 0 ? `${pendingCount + openTicketsCount} pendências` : null,
-      badgeColor: 'bg-purple-100 text-purple-800'
+      badge: pendingCount > 0 ? `${pendingCount} pendente` : null,
+      badgeColor: 'bg-amber-100 text-amber-800'
     },
     {
       id: 'produtos' as ActiveTab,
-      label: 'Cadastro de Produtos',
+      label: labels.products,
       icon: Package,
-      roles: ['dono', 'gerente', 'funcionario'],
+      roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: lowStockCount > 0 ? `${lowStockCount} alertas` : null,
       badgeColor: 'bg-red-100 text-red-700'
     },
     {
       id: 'estoque' as ActiveTab,
-      label: 'Controle de Estoque',
+      label: labels.stock,
       icon: ArrowLeftRight,
-      roles: ['dono', 'gerente', 'funcionario'],
+      roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: null
     },
     {
       id: 'funcionarios' as ActiveTab,
-      label: 'Equipe & Funcionários',
+      label: labels.team,
       icon: Users2,
-      roles: ['dono', 'gerente'],
+      roles: ['admin', 'dono', 'gerente'],
       badge: null
     },
     {
       id: 'tickets' as ActiveTab,
-      label: 'Chamados de Suporte',
+      label: labels.tickets,
       icon: LifeBuoy,
       roles: ['admin', 'dono', 'gerente', 'funcionario'],
       badge: openTicketsCount > 0 ? `${openTicketsCount} abertos` : null,
@@ -87,14 +94,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'configuracoes' as ActiveTab,
-      label: 'Dados da Empresa & Logo',
+      label: labels.settings,
       icon: Settings,
       roles: ['admin', 'dono'],
       badge: null
     },
     {
       id: 'codigo' as ActiveTab,
-      label: 'Código PHP & MySQL',
+      label: labels.code,
       icon: FileCode2,
       roles: ['admin'],
       badge: 'Admin / Dev',
@@ -108,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="hidden lg:flex w-64 bg-slate-900 text-slate-100 flex-col shrink-0 min-h-[calc(100vh-61px)] rounded-xl border border-slate-800 shadow-xs">
       <div className="p-4 border-b border-slate-800">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 tracking-wider uppercase">
-          <span>Navegação do Sistema</span>
+          <span>{labels.nav}</span>
         </div>
       </div>
 
